@@ -1,0 +1,4 @@
+korean-lunar-calendar v0.4.0 (MIT) — https://github.com/usingsky/korean_lunar_calendar_js
+npm 배포본 dist/korean-lunar-calendar.mjs(ES 모듈)를 내용 수정 없이 복사했습니다.
+어떤 정적 서버에서도 JavaScript MIME으로 제공되도록 확장자만 .js로 바꿨습니다(소스맵 파일은 포함하지 않음).
+지원 범위: 음력 1000-01-01 ~ 2050-11-18 / 양력 1000-02-13 ~ 2050-12-31 (한국천문연구원 기준 데이터 내장)

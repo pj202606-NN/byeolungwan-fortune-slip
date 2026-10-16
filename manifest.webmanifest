@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "별운관 운세지",
+  "short_name": "별운관",
+  "description": "생년월일로 28수 별자리를 찾고 오늘의 운세를 작은 종이에 담아드리는 졸업전시 체험",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#0E2D40",
+  "theme_color": "#0E2D40",
+  "icons": [
+    { "src": "public/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "public/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "public/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "public/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

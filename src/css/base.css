@@ -1,0 +1,99 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--c-frame);
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--c-text-on-dark);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+h1, h2, p, ol {
+  margin: 0;
+  padding: 0;
+  font-weight: inherit;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ── 무대: 1920×1200 좌표계를 그대로 유지하고 transform으로만 맞춘다 ── */
+.stage {
+  position: fixed; /* 문서에 스크롤할 내용이 생기지 않도록(키보드 표시 시 브라우저 자동 스크롤 방지) */
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1200px;
+  overflow: hidden;
+  transform-origin: 0 0;
+  transform: translate(var(--stage-x, 0px), var(--stage-y, 0px)) scale(var(--stage-scale, 1));
+  visibility: hidden; /* stage.js가 첫 배율을 계산한 뒤 표시 */
+}
+
+.stage.is-ready {
+  visibility: visible;
+}
+
+.stage__bg {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1200px;
+  display: block;
+  pointer-events: none;
+}
+
+.stage__bar {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: var(--frame-bar-h);
+  background: var(--c-frame);
+  pointer-events: none;
+}
+
+.stage__bar--top { top: 0; }
+.stage__bar--bottom { bottom: 0; }
+
+.page {
+  position: absolute;
+  inset: 0;
+}

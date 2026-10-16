@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#0E2D40">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="별운관">
+  <title>별운관 운세지</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="public/icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="public/icons/apple-touch-icon.png">
+
+  <link rel="preload" href="public/assets/bg-01.png" as="image">
+  <link rel="preload" href="public/fonts/maru-buri/MaruBuri-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="public/fonts/pretendard/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
+
+  <link rel="stylesheet" href="src/css/tokens.css">
+  <link rel="stylesheet" href="src/css/base.css">
+  <link rel="stylesheet" href="src/css/components.css">
+  <link rel="stylesheet" href="src/css/pages.css">
+</head>
+<body>
+  <!-- 1920×1200 기준 무대. stage.js가 실제 뷰포트에 맞춰 비율 그대로 축소/확대한다. -->
+  <div class="stage" id="stage">
+    <!-- 공통 배경: 화면 전환과 무관하게 한 번만 그려진다 -->
+    <img class="stage__bg" src="public/assets/bg-01.png" alt="" aria-hidden="true" decoding="sync" fetchpriority="high">
+    <div class="stage__bar stage__bar--top" aria-hidden="true"></div>
+    <div class="stage__bar stage__bar--bottom" aria-hidden="true"></div>
+
+    <!-- 공통 헤더 -->
+    <div class="brand-logo" role="img" aria-label="별운관"></div>
+    <button type="button" class="help-btn" data-action="open-help" aria-haspopup="dialog" aria-controls="help-modal">
+      <span class="help-btn__label">도움말</span>
+      <span class="help-btn__circle" aria-hidden="true">?</span>
+    </button>
+
+    <!-- PAGE 01 — 시작 -->
+    <section class="page page--start" data-page="start" aria-label="시작 화면">
+      <p class="intro__eyebrow">별자리 운세 출력기</p>
+      <h1 class="intro__title">
+        <span class="intro__title-line">오늘의 별을</span>
+        <span class="intro__title-line intro__title-line--accent">한 장에 담다</span>
+      </h1>
+      <p class="intro__desc">생년월일로 당신의 별자리를 찾고,<br>오늘의 운세를 작은 종이에 담아드립니다.</p>
+      <button type="button" class="btn btn--solid btn--sans start__btn" data-action="go" data-to="birth">시작하기</button>
+    </section>
+
+    <!-- PAGE 02 — 생년월일 입력 -->
+    <section class="page page--birth" data-page="birth" aria-label="생년월일 입력 화면" hidden>
+      <p class="intro__eyebrow">생년월일 입력</p>
+      <h1 class="intro__title">
+        <span class="intro__title-line">태어난 날을</span>
+        <span class="intro__title-line intro__title-line--accent">알려주세요.</span>
+      </h1>
+      <p class="intro__desc">생년월일로 당신의 별자리를 찾고,<br>오늘의 운세를 작은 종이에 담아드립니다.</p>
+
+      <!-- data-kb-top/bottom: 키보드가 올라왔을 때 화면에 남겨야 하는 영역(1920×1200 좌표) -->
+      <form class="birth-form" id="birth-form" autocomplete="off" novalidate data-kb-top="560" data-kb-bottom="765">
+        <button type="button" class="field birth-form__calendar" id="calendar-toggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="calendar-menu">양력</button>
+        <div class="calendar-menu" id="calendar-menu" role="listbox" aria-label="달력 선택" hidden>
+          <button type="button" class="calendar-menu__option" role="option" data-calendar="solar" aria-selected="true">양력</button>
+          <button type="button" class="calendar-menu__option" role="option" data-calendar="lunar" aria-selected="false">음력</button>
+        </div>
+        <div class="leap-toggle" id="leap-toggle" role="radiogroup" aria-label="윤달 여부" hidden>
+          <button type="button" class="leap-toggle__option" role="radio" data-leap="false" aria-checked="true">평달</button>
+          <button type="button" class="leap-toggle__option" role="radio" data-leap="true" aria-checked="false">윤달</button>
+        </div>
+        <input class="field birth-form__year" id="birth-year" name="year" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" enterkeyhint="next" aria-label="태어난 연도" aria-describedby="birth-error">
+        <span class="birth-form__unit birth-form__unit--year" aria-hidden="true">년</span>
+        <input class="field birth-form__month" id="birth-month" name="month" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" enterkeyhint="next" aria-label="태어난 월" aria-describedby="birth-error">
+        <span class="birth-form__unit birth-form__unit--month" aria-hidden="true">월</span>
+        <input class="field birth-form__day" id="birth-day" name="day" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" enterkeyhint="done" aria-label="태어난 일" aria-describedby="birth-error">
+        <span class="birth-form__unit birth-form__unit--day" aria-hidden="true">일</span>
+        <p class="birth-form__error" id="birth-error" role="alert" aria-live="assertive"></p>
+      </form>
+
+      <button type="button" class="btn btn--outline btn--sans page__btn-left" data-action="go" data-to="start">뒤로가기</button>
+      <button type="button" class="btn btn--solid btn--serif birth__submit" data-action="submit-birth">별자리와 운세 확인하기</button>
+    </section>
+
+    <!-- PAGE 03 — 별자리 및 오늘의 운세 -->
+    <section class="page page--result" data-page="result" aria-label="별자리 결과 화면" hidden>
+      <p class="intro__eyebrow">당신의 별자리</p>
+      <h1 class="star__name">
+        <span class="star__name-ko" data-bind="star.name"></span>
+        <span class="star__name-hanja" data-bind="star.hanja"></span>
+      </h1>
+      <p class="star__alias" data-bind="star.alias"></p>
+      <p class="star__birth">생년월일 <span data-bind="birth.label"></span></p>
+      <!-- 별자리 아이콘: SVG 원본 파일을 읽어 그대로 삽입(연결선 색만 CSS로 조정) -->
+      <div class="star__icon" data-bind-icon="star.iconPath" aria-hidden="true"></div>
+      <p class="intro__desc">생년월일로 당신의 별자리를 찾고,<br>오늘의 운세를 작은 종이에 담아드립니다.</p>
+
+      <article class="fortune-card result__card" aria-label="오늘의 운세">
+        <header class="fortune-card__head">
+          <span class="fortune-card__label">오늘의 운세</span>
+          <time class="fortune-card__date" data-bind="fortune.dateLabel"></time>
+        </header>
+        <p class="fortune-card__body" data-bind-lines="fortune.lines"></p>
+        <p class="fortune-card__foot" data-bind="star.footer"></p>
+      </article>
+
+      <button type="button" class="btn btn--outline btn--serif page__btn-left" data-action="go" data-to="birth">다시 입력하기</button>
+      <button type="button" class="btn btn--solid btn--serif result__print" data-action="print">운세지 출력하기</button>
+    </section>
+
+    <!-- PAGE 04 — 출력 완료 -->
+    <section class="page page--end" data-page="end" aria-label="출력 완료 화면" hidden>
+      <article class="fortune-card end__card" aria-label="오늘의 운세">
+        <header class="fortune-card__head">
+          <span class="fortune-card__label">오늘의 운세</span>
+          <time class="fortune-card__date" data-bind="fortune.dateLabel"></time>
+        </header>
+        <p class="fortune-card__body" data-bind-lines="fortune.lines"></p>
+        <p class="fortune-card__foot" data-bind="star.footer"></p>
+      </article>
+      <p class="end__notice">운세지가 출력되었습니다. 아래에서 가져가 주세요.</p>
+      <button type="button" class="btn btn--solid btn--serif end__home" data-action="go" data-to="start">처음으로 돌아가기</button>
+    </section>
+
+    <!-- 도움말 모달 (모든 페이지 공용) -->
+    <div class="modal" id="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
+      <div class="modal__panel">
+        <button type="button" class="modal__close" data-action="close-help" aria-label="닫기"></button>
+        <p class="modal__eyebrow">이용 방법</p>
+        <h2 class="modal__title" id="help-title">세 단계로 만나는<br>오늘의 별자리 운세</h2>
+        <ol class="modal__steps">
+          <li><span class="modal__step-no">01</span>생년월일을 입력합니다.</li>
+          <li><span class="modal__step-no">02</span>별자리와 오늘의 운세를 확인합니다.</li>
+          <li><span class="modal__step-no">03</span>운세지 출력하기를 눌러 종이를 받아가세요.</li>
+        </ol>
+        <p class="modal__notice">해당 별자리 운세는 졸업전시를 위한 문화 창작 콘텐츠로, 실제 미래를 예측하지 않습니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/js/app.js"></script>
+</body>
+</html>

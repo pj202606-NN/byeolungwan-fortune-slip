@@ -1,0 +1,52 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # 서비스 워커 내용이 바뀌어야 태블릿이 새 버전을 감지하므로, 배포마다 커밋 SHA로 버전을 찍는다.
+      - name: Stamp service worker version
+        run: |
+          sed -i "s/const VERSION = 'local-dev';/const VERSION = '${GITHUB_SHA::12}';/" sw.js
+          grep -n "const VERSION" sw.js
+          if grep -q "local-dev" sw.js; then echo "버전 치환 실패"; exit 1; fi
+
+      # precache 목록의 파일이 하나라도 없으면 서비스 워커 설치가 실패하므로 배포 전에 확인한다.
+      - name: Verify precache files exist
+        run: |
+          missing=0
+          for f in $(grep -oE "'\./[^']+'" sw.js | tr -d "'" | grep -v "^\./$"); do
+            if [ ! -f "$f" ]; then echo "없음: $f"; missing=1; fi
+          done
+          exit $missing
+
+      - name: Collect site files
+        run: |
+          mkdir _site
+          cp -r index.html manifest.webmanifest sw.js .nojekyll src public vendor _site/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
