@@ -1,0 +1,6 @@
+# 줄바꿈을 LF로 고정(Windows 작업 환경과 GitHub Actions(Linux) 사이의 차이 방지)
+* text=auto eol=lf
+
+# 바이너리
+*.png binary
+*.woff2 binary
