@@ -14,50 +14,50 @@
 }
 
 /* ── 공통 헤더: 도움말 버튼 ── */
-/* 터치 영역은 글자와 원을 모두 덮는 사각형(1645~1827 × 85~165) */
+/* 터치 영역은 글자와 원을 모두 덮는 사각형. 오른쪽 끝(1827)과 세로 중심(125.5)을 고정하고 --ts만큼 커진다 */
 .help-btn {
   position: absolute;
-  left: 1645px;
-  top: 85px;
-  width: 182px;
-  height: 81px;
+  right: 93px;
+  top: calc(125.5px - 40.5px * var(--ts));
+  width: calc(182px * var(--ts));
+  height: calc(81px * var(--ts));
   z-index: 5; /* 화면 전체를 덮는 .page 위에 있어야 터치가 닿는다 */
   color: var(--c-text-on-dark);
 }
 
 .help-btn__label {
   position: absolute;
-  left: 20px;
-  top: 29px;
+  right: calc(9px + 87px * var(--ts));
+  top: calc(29px * var(--ts));
   font-family: var(--font-sans);
-  font-size: 26px;
+  font-size: calc(26px * var(--ts));
   line-height: 1;
   letter-spacing: -0.01em;
 }
 
 .help-btn__circle {
   position: absolute;
-  left: 112px;
-  top: 10px;
-  width: 61px;
-  height: 61px;
+  right: 9px;
+  top: calc(10px * var(--ts));
+  width: calc(61px * var(--ts));
+  height: calc(61px * var(--ts));
   border: 3px solid var(--c-line);
   border-radius: 50%;
   background: var(--c-frame);
   color: var(--c-info);
   font-family: var(--font-serif);
-  font-size: 36px;
-  line-height: 55px;
+  font-size: calc(36px * var(--ts));
+  line-height: calc(55px * var(--ts));
   text-align: center;
 }
 
 /* ── 알약형 버튼 ── */
 .btn {
   position: absolute;
-  top: 969px;
-  height: 72px;
-  border-radius: 36px;
-  padding-top: 3px;
+  top: calc(1005px - 36px * var(--ts));
+  height: calc(72px * var(--ts));
+  border-radius: calc(36px * var(--ts));
+  padding-top: calc(3px * var(--ts));
   line-height: 1;
   letter-spacing: -0.01em;
   display: flex;
@@ -85,30 +85,31 @@
 
 .btn--sans {
   font-family: var(--font-sans);
-  font-size: 25px;
+  font-size: calc(25px * var(--ts));
   font-weight: 300;
 }
 
 .btn--serif {
   font-family: var(--font-serif);
-  font-size: 23px;
+  font-size: calc(23px * var(--ts));
 }
 
+/* 왼쪽 버튼: 왼쪽 끝(231) 고정 */
 .page__btn-left {
   left: 231px;
-  width: 251px;
+  width: calc(251px * var(--ts));
 }
 
 /* ── 입력 필드 ── */
 .field {
   position: absolute;
-  height: 71px;
+  height: calc(71px * var(--ts));
   background: var(--c-surface);
   border: 2px solid var(--c-line);
-  border-radius: 10px;
+  border-radius: calc(10px * var(--ts));
   color: var(--c-line);
   font-family: var(--font-sans);
-  font-size: 26px;
+  font-size: calc(26px * var(--ts));
   font-weight: 300;
   text-align: center;
   outline: none;
@@ -142,7 +143,7 @@ input.field:focus {
   align-items: flex-start;
   border-bottom: 1px solid var(--c-divider);
   font-family: var(--font-sans);
-  font-size: 20px;
+  font-size: calc(20px * var(--ts));
   line-height: 1;
   color: var(--c-line);
 }
@@ -151,11 +152,11 @@ input.field:focus {
   position: absolute;
   left: 76px;
   right: 40px;
-  top: 202px;
+  top: calc(284.5px - 82.5px * var(--ts)); /* 세 줄 묶음의 세로 중심(284.5) 유지 */
   font-family: var(--font-serif);
-  font-size: 32px;
-  line-height: 55px;
-  letter-spacing: -0.5px;
+  font-size: calc(32px * var(--ts));
+  line-height: calc(55px * var(--ts));
+  letter-spacing: calc(-0.5px * var(--ts));
   color: #111111;
   white-space: nowrap;
 }
@@ -165,7 +166,7 @@ input.field:focus {
   left: 78px;
   top: 406px;
   font-family: var(--font-serif);
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--ts));
   line-height: 1;
   color: var(--c-line);
 }
@@ -192,10 +193,10 @@ input.field:focus {
 
 .modal__close {
   position: absolute;
-  left: 737px;
-  top: 46px;
-  width: 44px;
-  height: 44px;
+  left: calc(759px - 22px * var(--ts)); /* 원 중심(759, 68) 유지 */
+  top: calc(68px - 22px * var(--ts));
+  width: calc(44px * var(--ts));
+  height: calc(44px * var(--ts));
   border: 1px solid var(--c-line);
   border-radius: 50%;
 }
@@ -206,7 +207,7 @@ input.field:focus {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 21px;
+  width: calc(21px * var(--ts));
   height: 1.5px;
   background: #18679A;
   transform: translate(-50%, -50%) rotate(45deg);
@@ -219,9 +220,9 @@ input.field:focus {
 .modal__eyebrow {
   position: absolute;
   left: 102px;
-  top: 82px;
+  top: 80px;
   font-family: var(--font-sans);
-  font-size: 23px;
+  font-size: calc(23px * var(--ts));
   line-height: 1;
   color: var(--c-info);
 }
@@ -229,44 +230,44 @@ input.field:focus {
 .modal__title {
   position: absolute;
   left: 98px;
-  top: 148px;
+  top: 142px;
   font-family: var(--font-serif);
-  font-size: 40px;
+  font-size: calc(40px * var(--ts));
   font-weight: 600;
-  line-height: 55px;
-  letter-spacing: -1px;
+  line-height: calc(55px * var(--ts));
+  letter-spacing: calc(-1px * var(--ts));
   color: #111111;
 }
 
 .modal__steps {
   position: absolute;
   left: 105px;
-  top: 295px;
+  top: calc(177px + 110px * var(--ts)); /* 제목 두 줄 아래 35px */
   list-style: none;
   font-family: var(--font-sans);
-  font-size: 20px;
+  font-size: calc(20px * var(--ts));
   color: #111111;
 }
 
 .modal__steps li {
-  height: 52px;
-  line-height: 52px;
+  height: calc(52px * var(--ts));
+  line-height: calc(52px * var(--ts));
   white-space: nowrap;
 }
 
 .modal__step-no {
   display: inline-block;
-  width: 46px;
+  width: calc(46px * var(--ts));
   color: var(--c-info);
-  font-size: 23px;
+  font-size: calc(23px * var(--ts));
 }
 
 .modal__notice {
   position: absolute;
   right: 48px;
-  top: 485px;
+  top: calc(200px + 266px * var(--ts)); /* 단계 목록 아래 23px */
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: calc(14px * var(--ts));
   line-height: 1;
   color: #C3C3C3;
 }

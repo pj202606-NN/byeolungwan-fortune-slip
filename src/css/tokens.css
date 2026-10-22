@@ -49,6 +49,10 @@
   --font-serif: 'MaruBuri', 'Noto Serif KR', serif;
   --font-sans: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
 
+  /* 텍스트 배율: 모든 글자 크기와, 글자를 담는 버튼·입력칸·드롭다운 크기가 이 값에 비례한다.
+     1 = 피그마 레퍼런스 원래 크기. 위치는 각 요소의 기준점(가운데/왼쪽 끝/오른쪽 끝)을 유지한 채 커진다. */
+  --ts: 1.1;
+
   --stage-w: 1920;
   --stage-h: 1200;
   --frame-bar-h: 23px;

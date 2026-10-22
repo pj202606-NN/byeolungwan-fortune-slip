@@ -1,11 +1,14 @@
-/* ── 왼쪽 소개 텍스트 묶음 (PAGE 01·02·03 공통 위치) ── */
+/* 크기는 tokens.css의 --ts(텍스트 배율)에 비례한다.
+   세로 위치는 기준점을 고정한 채 커진다: 소개 텍스트 묶음은 y=565, 입력 줄은 y=608.5를 중심으로. */
+
+/* ── 소개 텍스트 묶음 (PAGE 02·03은 왼쪽 정렬, PAGE 01은 가운데 정렬) ── */
 .intro__eyebrow {
   position: absolute;
   left: 217px;
-  top: 346px;
+  top: calc(565px + (346px - 565px) * var(--ts));
   font-family: var(--font-serif);
-  font-size: 36px;
-  letter-spacing: 0.6px;
+  font-size: calc(36px * var(--ts));
+  letter-spacing: calc(0.6px * var(--ts));
   line-height: 1.2;
   color: var(--c-title-accent);
   white-space: nowrap;
@@ -14,11 +17,11 @@
 .intro__title {
   position: absolute;
   left: 200px;
-  top: 420px;
+  top: calc(565px + (420px - 565px) * var(--ts));
   font-family: var(--font-serif);
-  font-size: 92px;
-  line-height: 122px;
-  letter-spacing: -2px;
+  font-size: calc(92px * var(--ts));
+  line-height: calc(122px * var(--ts));
+  letter-spacing: calc(-2px * var(--ts));
   white-space: nowrap;
 }
 
@@ -34,66 +37,90 @@
 .intro__desc {
   position: absolute;
   left: 217px;
-  top: 711px;
+  top: calc(565px + (711px - 565px) * var(--ts));
   font-family: var(--font-sans);
-  font-size: 24px;
-  line-height: 41px;
-  letter-spacing: -0.4px;
+  font-size: calc(24px * var(--ts));
+  line-height: calc(41px * var(--ts));
+  letter-spacing: calc(-0.4px * var(--ts));
   color: var(--c-text-on-dark);
   white-space: nowrap;
 }
 
-/* ── PAGE 01 ── */
-.start__btn {
-  left: 834px;
-  width: 251px;
+/* ── PAGE 01: 소개 텍스트를 가운데 정렬해 화면 가로 중앙에 ── */
+.page--start .intro__eyebrow,
+.page--start .intro__title,
+.page--start .intro__desc {
+  left: 0;
+  width: 1920px;
+  text-align: center;
 }
 
-/* ── PAGE 02 ── */
-.birth-form__calendar { left: 957px; top: 573px; width: 126px; }
-.birth-form__year     { left: 1121px; top: 574px; width: 176px; }
-.birth-form__month    { left: 1358px; top: 574px; width: 126px; }
-.birth-form__day      { left: 1545px; top: 574px; width: 126px; }
+.start__btn {
+  left: calc(959.5px - 125.5px * var(--ts)); /* 가운데 정렬 유지 */
+  width: calc(251px * var(--ts));
+}
+
+/* ── PAGE 02: 입력 줄은 가운데(x=1329, y=608.5)를 기준으로 커진다 ── */
+.birth-form__calendar,
+.calendar-menu,
+.leap-toggle,
+.birth-form__error {
+  left: calc(1329px + (957px - 1329px) * var(--ts));
+}
+
+.birth-form__calendar {
+  top: calc(608.5px + (573px - 608.5px) * var(--ts));
+  width: calc(126px * var(--ts));
+}
+
+.birth-form__year,
+.birth-form__month,
+.birth-form__day {
+  top: calc(608.5px + (574px - 608.5px) * var(--ts));
+}
+
+.birth-form__year  { left: calc(1329px + (1121px - 1329px) * var(--ts)); width: calc(176px * var(--ts)); }
+.birth-form__month { left: calc(1329px + (1358px - 1329px) * var(--ts)); width: calc(126px * var(--ts)); }
+.birth-form__day   { left: calc(1329px + (1545px - 1329px) * var(--ts)); width: calc(126px * var(--ts)); }
 
 .birth-form__unit {
   position: absolute;
-  top: 596px;
+  top: calc(608.5px + (596px - 608.5px) * var(--ts));
   font-family: var(--font-sans);
-  font-size: 26px;
+  font-size: calc(26px * var(--ts));
   font-weight: 300;
   line-height: 1;
   color: var(--c-title-accent);
 }
 
-.birth-form__unit--year  { left: 1308px; }
-.birth-form__unit--month { left: 1495px; }
-.birth-form__unit--day   { left: 1682px; }
+.birth-form__unit--year  { left: calc(1329px + (1308px - 1329px) * var(--ts)); }
+.birth-form__unit--month { left: calc(1329px + (1495px - 1329px) * var(--ts)); }
+.birth-form__unit--day   { left: calc(1329px + (1682px - 1329px) * var(--ts)); }
 
 .birth__submit {
-  left: 1365px;
-  width: 349px;
+  left: calc(1714px - 349px * var(--ts)); /* 오른쪽 끝(1714) 고정 */
+  width: calc(349px * var(--ts));
 }
 
 /* 양력·음력 드롭다운: 선택 버튼 바로 아래, 같은 폭·같은 질감 */
 .calendar-menu {
   position: absolute;
-  left: 957px;
-  top: 650px;
+  top: calc(608.5px + (650px - 608.5px) * var(--ts));
   z-index: 3;
-  width: 126px;
+  width: calc(126px * var(--ts));
   padding: 0;
   background: var(--c-surface);
   border: 2px solid var(--c-line);
-  border-radius: 10px;
+  border-radius: calc(10px * var(--ts));
   overflow: hidden;
 }
 
 .calendar-menu__option {
   display: block;
   width: 100%;
-  height: 62px;
+  height: calc(62px * var(--ts));
   font-family: var(--font-sans);
-  font-size: 26px;
+  font-size: calc(26px * var(--ts));
   font-weight: 300;
   color: var(--c-line);
   text-align: center;
@@ -115,20 +142,19 @@
 /* 평달·윤달: 해당 음력 연월에 윤달이 있을 때만 표시 */
 .leap-toggle {
   position: absolute;
-  left: 957px;
-  top: 657px;
+  top: calc(608.5px + (657px - 608.5px) * var(--ts));
   display: flex;
-  gap: 4px;
+  gap: calc(4px * var(--ts));
 }
 
 .leap-toggle__option {
-  width: 61px;
-  height: 46px;
+  width: calc(61px * var(--ts));
+  height: calc(46px * var(--ts));
   background: var(--c-surface);
   border: 2px solid var(--c-line);
-  border-radius: 10px;
+  border-radius: calc(10px * var(--ts));
   font-family: var(--font-sans);
-  font-size: 20px;
+  font-size: calc(20px * var(--ts));
   font-weight: 300;
   color: var(--c-line);
 }
@@ -141,10 +167,9 @@
 /* 오류 문구: 입력 줄 아래 빈 영역에만 표시해 레이아웃을 밀지 않는다 */
 .birth-form__error {
   position: absolute;
-  left: 957px;
-  top: 722px;
+  top: calc(608.5px + (722px - 608.5px) * var(--ts));
   font-family: var(--font-sans);
-  font-size: 21px;
+  font-size: calc(21px * var(--ts));
   line-height: 1.3;
   color: var(--c-title-accent);
   white-space: nowrap;
@@ -162,35 +187,35 @@
 .star__name {
   position: absolute;
   left: 205px;
-  top: 420px;
+  top: calc(565px + (420px - 565px) * var(--ts));
   font-family: var(--font-serif);
   line-height: 1;
   white-space: nowrap;
   display: flex;
   align-items: baseline;
-  gap: 33px;
+  gap: calc(33px * var(--ts));
 }
 
 .star__name-ko {
-  font-size: 92px;
-  letter-spacing: -8px;
-  line-height: 122px;
+  font-size: calc(92px * var(--ts));
+  letter-spacing: calc(-8px * var(--ts));
+  line-height: calc(122px * var(--ts));
   color: var(--c-text-on-dark);
 }
 
 .star__name-hanja {
-  font-size: 33px;
+  font-size: calc(33px * var(--ts));
   position: relative;
-  top: 7px;
+  top: calc(7px * var(--ts));
   color: var(--c-text-on-dark);
 }
 
 .star__alias {
   position: absolute;
   left: 219px;
-  top: 573px;
+  top: calc(565px + (573px - 565px) * var(--ts));
   font-family: var(--font-serif);
-  font-size: 35px;
+  font-size: calc(35px * var(--ts));
   line-height: 1.2;
   color: var(--c-title-accent);
   white-space: nowrap;
@@ -199,9 +224,9 @@
 .star__birth {
   position: absolute;
   left: 218px;
-  top: 645px;
+  top: calc(565px + (645px - 565px) * var(--ts));
   font-family: var(--font-serif);
-  font-size: 18px;
+  font-size: calc(18px * var(--ts));
   line-height: 1.2;
   color: #D5D5D5;
   white-space: nowrap;
@@ -234,8 +259,8 @@
 }
 
 .result__print {
-  left: 1396px;
-  width: 318px;
+  left: calc(1714px - 318px * var(--ts)); /* 오른쪽 끝(1714) 고정 */
+  width: calc(318px * var(--ts));
 }
 
 /* ── PAGE 04 ── */
@@ -248,16 +273,16 @@
   position: absolute;
   left: -2px;
   width: 1920px;
-  top: 850px;
+  top: calc(860.8px - 10.8px * var(--ts)); /* 세로 중심 유지 */
   text-align: center;
   font-family: var(--font-serif);
-  font-size: 18px;
-  letter-spacing: -0.4px;
+  font-size: calc(18px * var(--ts));
+  letter-spacing: calc(-0.4px * var(--ts));
   line-height: 1.2;
   color: var(--c-text-on-dark);
 }
 
 .end__home {
-  left: 801px;
-  width: 318px;
+  left: calc(960px - 159px * var(--ts)); /* 가운데 정렬 유지 */
+  width: calc(318px * var(--ts));
 }
