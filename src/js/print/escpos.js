@@ -59,8 +59,11 @@ export function buildTestPrint(lines = ['BYEOLUNGWAN TEST']) {
   ]);
 }
 
-/** 운세지: 초기화 → 가운데 정렬 → 래스터 이미지 → 급지(뜯는 위치까지) */
-export function buildRasterPrint(bitmap, { feed = 4 } = {}) {
+/** 인쇄 후 종이 배출 기본값(줄). ESC d n은 mm가 아니라 현재 줄 간격(ESC 2 기본값) × n 만큼 급지한다. */
+export const DEFAULT_FEED_LINES = 10;
+
+/** 운세지·보정 출력: 초기화 → 가운데 정렬 → 래스터 이미지 → 마지막에 급지 한 번(뜯는 위치까지) */
+export function buildRasterPrint(bitmap, { feed = DEFAULT_FEED_LINES } = {}) {
   return Uint8Array.from([
     ...cmd.init(),
     ...cmd.lineSpacingDefault(),
@@ -69,6 +72,11 @@ export function buildRasterPrint(bitmap, { feed = 4 } = {}) {
     ...cmd.align(0),
     ...cmd.feedLines(feed),
   ]);
+}
+
+/** 종이 배출 테스트: 아무것도 인쇄하지 않고 급지만 (초기화 → 기본 줄 간격 → ESC d n) */
+export function buildFeedOnly(feed = DEFAULT_FEED_LINES) {
+  return Uint8Array.from([...cmd.init(), ...cmd.lineSpacingDefault(), ...cmd.feedLines(feed)]);
 }
 
 /** 디버깅용 16진수 표기 */

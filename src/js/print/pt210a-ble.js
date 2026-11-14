@@ -32,7 +32,9 @@ export class PrinterError extends Error {
 }
 
 const STORAGE_KEY = 'byeolungwan.printer';
-const DEFAULT_SETTINGS = Object.freeze({ chunkSize: 128, chunkDelayMs: 10, writeMode: 'auto' });
+// 전송 설정(chunkSize·chunkDelayMs·writeMode)은 태블릿에 저장된 값이 이 기본값보다 우선한다 — 실기기에서 맞춘 값이 유지되도록.
+// feedLines: 인쇄 후 종이 배출 줄 수(운세지·보정 출력의 마지막 ESC d n).
+const DEFAULT_SETTINGS = Object.freeze({ chunkSize: 128, chunkDelayMs: 10, writeMode: 'auto', feedLines: 10 });
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 

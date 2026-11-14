@@ -69,11 +69,13 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
           <button type="button" data-dev="test">TEST 출력</button>
           <button type="button" data-dev="calib">보정 출력</button>
           <button type="button" data-dev="preview">운세지 미리보기</button>
+          <button type="button" data-dev="feed">종이 배출 테스트</button>
         </div>
         <div class="dev-printer__row">
           <label>청크 <select data-setting="chunkSize">${[20, 64, 128, 180, 244, 512].map((v) => `<option value="${v}">${v}B</option>`).join('')}</select></label>
           <label>간격 <select data-setting="chunkDelayMs">${[0, 5, 10, 20, 40, 80].map((v) => `<option value="${v}">${v}ms</option>`).join('')}</select></label>
           <label>쓰기 <select data-setting="writeMode"><option value="auto">자동</option><option value="without-response">without response</option><option value="with-response">with response</option></select></label>
+          <label>인쇄 후 급지 <select data-setting="feedLines">${[6, 8, 10, 12, 14, 16].map((v) => `<option value="${v}">${v}줄</option>`).join('')}</select></label>
         </div>
         <pre class="dev-printer__log"></pre>
         <div class="dev-printer__preview" hidden></div>
@@ -102,6 +104,10 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
       if (act === 'test') await printService.printTest();
       if (act === 'calib') await printService.printCalibration(`${printer.snapshot().settings.chunkSize}B`);
       if (act === 'preview') await togglePreview();
+      if (act === 'feed') {
+        const r = await printService.printFeedTest();
+        if (r.status === 'busy') log('종이 배출 테스트: 다른 출력이 진행 중이라 실행하지 않음');
+      }
     });
   }
 
@@ -110,11 +116,11 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
     if (!box.hidden) { box.hidden = true; return; }
     const result = getResult();
     if (!result) { log('미리보기: 결과 데이터가 없습니다(결과 화면에서 눌러 주세요)'); return; }
-    const { bitmap, bytes } = await printService.buildReceipt(result);
+    const { bitmap, bytes, feed } = await printService.buildReceipt(result);
     const img = bitmapPreview(bitmap);
     img.className = 'dev-printer__receipt';
     box.replaceChildren(img, Object.assign(document.createElement('p'), {
-      textContent: `${bitmap.widthBytes * 8}×${bitmap.height} dots · ESC/POS ${bytes.length} bytes`,
+      textContent: `${bitmap.widthBytes * 8}×${bitmap.height} dots · ESC/POS ${bytes.length} bytes · 인쇄 후 급지 ${feed}줄`,
     }));
     box.hidden = false;
     log(`미리보기 생성 ${bitmap.height}줄, ${bytes.length} bytes`);
