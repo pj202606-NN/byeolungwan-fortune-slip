@@ -77,6 +77,17 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
           <label>쓰기 <select data-setting="writeMode"><option value="auto">자동</option><option value="without-response">without response</option><option value="with-response">with response</option></select></label>
           <label>인쇄 후 급지 <select data-setting="feedLines">${[4, 5, 6, 7, 8, 10, 12, 14, 16].map((v) => `<option value="${v}">${v}줄</option>`).join('')}</select></label>
         </div>
+        <div class="dev-printer__row">
+          <label>인쇄 후 급지 명령 <select data-setting="feedMode"><option value="init">B · ESC @ 포함 (7B)</option><option value="plain">A · ESC @ 없음 (5B)</option></select></label>
+          <label>급지 전 대기 <select data-setting="feedDelayMs"><option value="0">자동</option>${[1000, 2000, 3000, 5000].map((v) => `<option value="${v}">${v}ms</option>`).join('')}</select></label>
+        </div>
+        <div class="dev-printer__row" aria-label="급지 진단">
+          <span class="dev-printer__hint">급지 진단 ·</span>
+          <button type="button" data-dev="feedA">급지 A 단독 (5B)</button>
+          <button type="button" data-dev="feedB">급지 B 단독 (7B)</button>
+          <button type="button" data-dev="calibA">보정+급지 A</button>
+          <button type="button" data-dev="calibB">보정+급지 B</button>
+        </div>
         <pre class="dev-printer__log"></pre>
         <div class="dev-printer__preview" hidden></div>
       </div>`;
@@ -91,7 +102,7 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
     panel.querySelectorAll('[data-setting]').forEach((sel) => {
       sel.addEventListener('change', () => {
         const key = sel.dataset.setting;
-        printer.updateSettings({ [key]: key === 'writeMode' ? sel.value : Number(sel.value) });
+        printer.updateSettings({ [key]: key === 'writeMode' || key === 'feedMode' ? sel.value : Number(sel.value) });
         log(`설정 변경: ${key} = ${sel.value}`);
       });
     });
@@ -104,9 +115,19 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
       if (act === 'test') await printService.printTest();
       if (act === 'calib') await printService.printCalibration(`${printer.snapshot().settings.chunkSize}B`);
       if (act === 'preview') await togglePreview();
-      if (act === 'feed') {
-        const r = await printService.printFeedTest();
-        if (r.status === 'busy') log('종이 배출 테스트: 다른 출력이 진행 중이라 실행하지 않음');
+      // 진단 명령은 다른 출력(운세지 포함)이 진행 중이면 print-service가 거부한다(busy)
+      const calibLabel = `${printer.snapshot().settings.chunkSize}B`;
+      const diag = {
+        feed: ['종이 배출 테스트', () => printService.printFeedTest()],
+        feedA: ['급지 A 단독', () => printService.printFeedDiag('plain')],
+        feedB: ['급지 B 단독', () => printService.printFeedDiag('init')],
+        calibA: ['보정+급지 A', () => printService.printCalibration(calibLabel, 'plain')],
+        calibB: ['보정+급지 B', () => printService.printCalibration(calibLabel, 'init')],
+      }[act];
+      if (diag) {
+        const r = await diag[1]();
+        if (r.status === 'busy') log(`${diag[0]}: 다른 출력이 진행 중이라 실행하지 않음`);
+        if (r.status === 'failed') showError(r.error);
       }
     });
   }

@@ -33,8 +33,10 @@ export class PrinterError extends Error {
 
 const STORAGE_KEY = 'byeolungwan.printer';
 // 전송 설정(chunkSize·chunkDelayMs·writeMode)은 태블릿에 저장된 값이 이 기본값보다 우선한다 — 실기기에서 맞춘 값이 유지되도록.
-// feedLines: 인쇄 후 종이 배출 줄 수(운세지·보정 출력의 마지막 ESC d n).
-const DEFAULT_SETTINGS = Object.freeze({ chunkSize: 128, chunkDelayMs: 10, writeMode: 'auto', feedLines: 6 });
+// feedLines: 인쇄 후 종이 배출 줄 수 / feedMode: 인쇄 후 급지 명령('init' 7B | 'plain' 5B)
+// feedDelayMs: 이미지 전송 완료 후 급지 전송까지 대기(0 = 자동 계산)
+// 새 항목은 저장값에 없을 때만 기본값이 쓰이고, 기존 저장값(전송 설정·급지 줄 수)은 그대로 유지된다.
+const DEFAULT_SETTINGS = Object.freeze({ chunkSize: 128, chunkDelayMs: 10, writeMode: 'auto', feedLines: 6, feedMode: 'init', feedDelayMs: 0 });
 // 급지 기본값을 바꿨을 때 태블릿에 남은 이전 급지값만 한 번 새 기본값으로 맞추기 위한 표시(전송 설정은 건드리지 않음)
 const FEED_DEFAULT_REV = 2;
 

@@ -363,3 +363,9 @@ input.field:focus {
   image-rendering: pixelated;
   max-height: 560px;
 }
+
+.dev-printer__hint {
+  align-self: center;
+  color: #BFD3E0;
+  font-size: 16px;
+}

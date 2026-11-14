@@ -64,7 +64,7 @@ export function buildTestPrint(lines = ['BYEOLUNGWAN TEST']) {
 export const DEFAULT_FEED_LINES = 6;
 
 /** 운세지·보정 출력의 이미지 부분: 초기화 → 가운데 정렬 → 래스터 이미지 → 정렬 복귀.
- *  PT210A에서 이미지 뒤에 바로 붙인 ESC d n은 반영되지 않아, 급지는 buildFeedAfterPrint로 따로 보낸다. */
+ *  급지는 인쇄가 끝난 뒤 buildPostPrintFeed로 따로 보낸다. */
 export function buildRasterPrint(bitmap) {
   return Uint8Array.from([
     ...cmd.init(),
@@ -75,15 +75,32 @@ export function buildRasterPrint(bitmap) {
   ]);
 }
 
-/** 이미지 인쇄가 끝난 뒤 별도 BLE 쓰기로 보내는 급지(ESC 2 → ESC d n).
- *  ESC @(초기화)는 프린터 버퍼를 비우므로 인쇄 직후에는 넣지 않는다. */
-export function buildFeedAfterPrint(feed = DEFAULT_FEED_LINES) {
-  return Uint8Array.from([...cmd.lineSpacingDefault(), ...cmd.feedLines(feed)]);
+/**
+ * 인쇄 후 급지 명령 두 가지(PT210A 실물 결과 기준)
+ *  - 'init'  (B, 7바이트) ESC @ · ESC 2 · ESC d n  — 운세지 출력 직후에도 종이가 배출되는 것이 실물로 확인됨
+ *  - 'plain' (A, 5바이트) ESC 2 · ESC d n          — 운세지 이미지 직후에는 배출되지 않았음(f2ff972)
+ * 가설: PT210A는 GS v 0 래스터 인쇄 뒤 ESC @로 초기화하기 전까지 ESC d를 실행하지 않는다.
+ * ESC @는 아직 인쇄되지 않은 버퍼를 지우므로, 이미지 인쇄가 끝났을 시점(대기 후)에만 보낸다.
+ */
+export const FEED_MODES = Object.freeze({
+  init: { label: 'B · ESC @ 포함 (7B)', build: (n) => [...cmd.init(), ...cmd.lineSpacingDefault(), ...cmd.feedLines(n)] },
+  plain: { label: 'A · ESC @ 없음 (5B)', build: (n) => [...cmd.lineSpacingDefault(), ...cmd.feedLines(n)] },
+});
+export const DEFAULT_FEED_MODE = 'init';
+
+export function buildPostPrintFeed(feed = DEFAULT_FEED_LINES, mode = DEFAULT_FEED_MODE) {
+  return Uint8Array.from((FEED_MODES[mode] || FEED_MODES[DEFAULT_FEED_MODE]).build(feed));
 }
 
-/** 종이 배출 테스트: 아무것도 인쇄하지 않고 급지만 (초기화 → 기본 줄 간격 → ESC d n). 실기기에서 동작 확인됨 */
+/** 종이 배출 테스트: 아무것도 인쇄하지 않고 급지만 (B와 같은 7바이트). 실기기에서 동작 확인됨 */
 export function buildFeedOnly(feed = DEFAULT_FEED_LINES) {
-  return Uint8Array.from([...cmd.init(), ...cmd.lineSpacingDefault(), ...cmd.feedLines(feed)]);
+  return buildPostPrintFeed(feed, 'init');
+}
+
+/** 래스터 밴드 요약(로그용): 밴드 수, 마지막 밴드 줄 수, 래스터 데이터 바이트 */
+export function rasterSummary(bitmap, bandRows = 96) {
+  const bands = Math.ceil(bitmap.height / bandRows);
+  return { bands, lastRows: bitmap.height - bandRows * (bands - 1), rasterBytes: bitmap.widthBytes * bitmap.height };
 }
 
 /** 디버깅용 16진수 표기 */
