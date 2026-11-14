@@ -59,22 +59,29 @@ export function buildTestPrint(lines = ['BYEOLUNGWAN TEST']) {
   ]);
 }
 
-/** 인쇄 후 종이 배출 기본값(줄). ESC d n은 mm가 아니라 현재 줄 간격(ESC 2 기본값) × n 만큼 급지한다. */
-export const DEFAULT_FEED_LINES = 10;
+/** 인쇄 후 종이 배출 기본값(줄). ESC d n은 mm가 아니라 현재 줄 간격(ESC 2 기본값) × n 만큼 급지한다.
+ *  PT210A 실측: 10줄 ≈ 35mm(줄당 약 3.5mm) → 6줄 ≈ 21mm. */
+export const DEFAULT_FEED_LINES = 6;
 
-/** 운세지·보정 출력: 초기화 → 가운데 정렬 → 래스터 이미지 → 마지막에 급지 한 번(뜯는 위치까지) */
-export function buildRasterPrint(bitmap, { feed = DEFAULT_FEED_LINES } = {}) {
+/** 운세지·보정 출력의 이미지 부분: 초기화 → 가운데 정렬 → 래스터 이미지 → 정렬 복귀.
+ *  PT210A에서 이미지 뒤에 바로 붙인 ESC d n은 반영되지 않아, 급지는 buildFeedAfterPrint로 따로 보낸다. */
+export function buildRasterPrint(bitmap) {
   return Uint8Array.from([
     ...cmd.init(),
     ...cmd.lineSpacingDefault(),
     ...cmd.align(1),
     ...rasterCommands(bitmap.bits, bitmap.widthBytes, bitmap.height),
     ...cmd.align(0),
-    ...cmd.feedLines(feed),
   ]);
 }
 
-/** 종이 배출 테스트: 아무것도 인쇄하지 않고 급지만 (초기화 → 기본 줄 간격 → ESC d n) */
+/** 이미지 인쇄가 끝난 뒤 별도 BLE 쓰기로 보내는 급지(ESC 2 → ESC d n).
+ *  ESC @(초기화)는 프린터 버퍼를 비우므로 인쇄 직후에는 넣지 않는다. */
+export function buildFeedAfterPrint(feed = DEFAULT_FEED_LINES) {
+  return Uint8Array.from([...cmd.lineSpacingDefault(), ...cmd.feedLines(feed)]);
+}
+
+/** 종이 배출 테스트: 아무것도 인쇄하지 않고 급지만 (초기화 → 기본 줄 간격 → ESC d n). 실기기에서 동작 확인됨 */
 export function buildFeedOnly(feed = DEFAULT_FEED_LINES) {
   return Uint8Array.from([...cmd.init(), ...cmd.lineSpacingDefault(), ...cmd.feedLines(feed)]);
 }

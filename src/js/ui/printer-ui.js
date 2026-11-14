@@ -75,7 +75,7 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
           <label>청크 <select data-setting="chunkSize">${[20, 64, 128, 180, 244, 512].map((v) => `<option value="${v}">${v}B</option>`).join('')}</select></label>
           <label>간격 <select data-setting="chunkDelayMs">${[0, 5, 10, 20, 40, 80].map((v) => `<option value="${v}">${v}ms</option>`).join('')}</select></label>
           <label>쓰기 <select data-setting="writeMode"><option value="auto">자동</option><option value="without-response">without response</option><option value="with-response">with response</option></select></label>
-          <label>인쇄 후 급지 <select data-setting="feedLines">${[6, 8, 10, 12, 14, 16].map((v) => `<option value="${v}">${v}줄</option>`).join('')}</select></label>
+          <label>인쇄 후 급지 <select data-setting="feedLines">${[4, 5, 6, 7, 8, 10, 12, 14, 16].map((v) => `<option value="${v}">${v}줄</option>`).join('')}</select></label>
         </div>
         <pre class="dev-printer__log"></pre>
         <div class="dev-printer__preview" hidden></div>
@@ -120,7 +120,7 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
     const img = bitmapPreview(bitmap);
     img.className = 'dev-printer__receipt';
     box.replaceChildren(img, Object.assign(document.createElement('p'), {
-      textContent: `${bitmap.widthBytes * 8}×${bitmap.height} dots · ESC/POS ${bytes.length} bytes · 인쇄 후 급지 ${feed}줄`,
+      textContent: `${bitmap.widthBytes * 8}×${bitmap.height} dots · 이미지 ESC/POS ${bytes.length} bytes · 인쇄 후 별도 급지 ${feed}줄`,
     }));
     box.hidden = false;
     log(`미리보기 생성 ${bitmap.height}줄, ${bytes.length} bytes`);
