@@ -57,6 +57,7 @@ function go(page) {
   state.page = page;
   if (page === 'start') {
     resetSession();
+    printer.tryReconnect(); // 끊겨 있으면 터치 없이 가능한 재연결만 시도(실패 시 상단 버튼으로 연결)
     pwa.notifySafePoint(); // 대기 중인 새 버전이 있으면 이때만 적용
   }
 }
@@ -138,7 +139,7 @@ const actions = {
       printerUi.showError(result.error);
     }
   },
-  'printer-connect': () => printerUi.connect(),
+  'printer-connect': (btn) => printerUi.connect(btn.id === 'start-printer'),
 };
 
 stage.addEventListener('click', (event) => {

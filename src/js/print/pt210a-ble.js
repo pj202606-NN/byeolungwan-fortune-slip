@@ -60,12 +60,24 @@ function classify(err) {
 }
 
 export function createPt210aPrinter({ log = () => {} } = {}) {
-  const stored = loadStored();
-  const settings = { ...DEFAULT_SETTINGS, ...(stored.settings || {}) };
-  if (stored.feedRev !== FEED_DEFAULT_REV) {
-    settings.feedLines = DEFAULT_SETTINGS.feedLines;
-    saveStored({ ...stored, settings, feedRev: FEED_DEFAULT_REV });
+  // 프린터 설정은 개발 모드·일반 모드(Chrome 탭과 설치형 앱)가 같은 localStorage 항목을 공유한다.
+  // 페이지가 오래 켜져 있어도 다른 쪽에서 바꾼 최신 값을 쓰도록, 쓸 때마다 저장소에서 다시 읽는다.
+  // (저장소를 쓸 수 없는 환경에서는 메모리 값으로 동작)
+  let memorySettings = { ...DEFAULT_SETTINGS };
+  function readSettings() {
+    const s = loadStored().settings;
+    if (s) memorySettings = { ...DEFAULT_SETTINGS, ...s };
+    return { ...memorySettings };
   }
+  {
+    const stored = loadStored();
+    if (stored.feedRev !== FEED_DEFAULT_REV) {
+      // 급지 기본값 변경 시 한 번만: 급지 줄 수만 새 기본값으로(전송 설정은 그대로)
+      const s = { ...DEFAULT_SETTINGS, ...(stored.settings || {}), feedLines: DEFAULT_SETTINGS.feedLines };
+      saveStored({ ...stored, settings: s, feedRev: FEED_DEFAULT_REV });
+    }
+  }
+  readSettings();
   const supported = typeof navigator !== 'undefined' && !!navigator.bluetooth && window.isSecureContext;
 
   let status = supported ? 'disconnected' : 'unsupported';
@@ -93,10 +105,10 @@ export function createPt210aPrinter({ log = () => {} } = {}) {
       status,
       label: STATUS_LABEL[status],
       supported,
-      deviceName: device ? device.name || '(이름 없음)' : stored.name || null,
+      deviceName: device ? device.name || '(이름 없음)' : loadStored().name || null,
       connected: isConnected(),
       error: lastError,
-      settings: { ...settings },
+      settings: readSettings(),
       activeWriteMode,
       canAutoReconnect: !!(navigator.bluetooth && navigator.bluetooth.getDevices),
     };
@@ -163,7 +175,7 @@ export function createPt210aPrinter({ log = () => {} } = {}) {
     setStatus('connecting');
     try {
       await setupGatt(dev);
-      saveStored({ ...loadStored(), id: dev.id, name: dev.name, settings });
+      saveStored({ ...loadStored(), id: dev.id, name: dev.name }); // 설정은 건드리지 않는다
       setStatus('connected');
       log(`연결됨: ${dev.name || dev.id}`);
     } catch (err) {
@@ -217,7 +229,7 @@ export function createPt210aPrinter({ log = () => {} } = {}) {
     setStatus('disconnected');
   }
 
-  async function writeChunk(chunk) {
+  async function writeChunk(chunk, settings) {
     const canNoResp = writeChar.properties ? writeChar.properties.writeWithoutResponse : true;
     const preferNoResp = settings.writeMode === 'without-response'
       || (settings.writeMode === 'auto' && canNoResp && activeWriteMode !== 'with-response');
@@ -239,6 +251,7 @@ export function createPt210aPrinter({ log = () => {} } = {}) {
   /** 바이트 배열을 청크로 나눠 순서대로 보낸다. 끊기거나 실패하면 PrinterError를 던진다. */
   async function write(bytes, { onProgress } = {}) {
     if (!isConnected()) throw new PrinterError('NOT_CONNECTED', '프린터가 연결되어 있지 않습니다.');
+    const settings = readSettings(); // 이 전송 동안 쓸 최신 설정(개발 모드에서 마지막으로 저장한 값)
     const size = Math.max(20, Math.min(512, settings.chunkSize | 0));
     const total = bytes.length;
     const t0 = performance.now();
@@ -246,7 +259,7 @@ export function createPt210aPrinter({ log = () => {} } = {}) {
       if (!isConnected()) throw new PrinterError('DISCONNECTED', '출력 중 프린터 연결이 끊겼습니다.');
       const chunk = bytes.slice(off, off + size);
       try {
-        await writeChunk(chunk);
+        await writeChunk(chunk, settings);
       } catch (err) {
         if (!isConnected()) throw new PrinterError('DISCONNECTED', '출력 중 프린터 연결이 끊겼습니다.', err);
         throw new PrinterError('WRITE_FAILED', `프린터로 전송하지 못했습니다. (${err.message})`, err);
@@ -260,8 +273,10 @@ export function createPt210aPrinter({ log = () => {} } = {}) {
   }
 
   function updateSettings(patch) {
-    Object.assign(settings, patch);
-    saveStored({ ...loadStored(), settings });
+    const stored = loadStored();
+    const next = { ...DEFAULT_SETTINGS, ...(stored.settings || {}), ...patch };
+    memorySettings = next;
+    saveStored({ ...stored, settings: next });
     emit();
   }
 
@@ -270,13 +285,25 @@ export function createPt210aPrinter({ log = () => {} } = {}) {
     if (phase === 'printing' || phase === 'printed' || phase === 'failed') setStatus(phase, error);
   }
 
+  // 같은 태블릿의 다른 탭·설치형 앱에서 설정이 바뀌면 화면 표시도 바로 갱신
+  window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY) { readSettings(); emit(); }
+  });
+
+  /** 시작 화면 진입 등: 끊겨 있으면 사용자 터치 없이 가능한 재연결만 시도(실패하면 연결 버튼으로) */
+  function tryReconnect() {
+    if (!supported || isConnected() || status === 'connecting' || manualDisconnect) return;
+    if (device) scheduleReconnect(1);
+    else reconnectRemembered();
+  }
+
   // 화면이 다시 켜졌을 때 끊겨 있으면 재연결
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && device && !isConnected() && !manualDisconnect) scheduleReconnect(1);
   });
 
   return {
-    connect, disconnect, reconnectRemembered, write, isConnected, updateSettings, setJobPhase,
+    connect, disconnect, reconnectRemembered, tryReconnect, write, isConnected, updateSettings, setJobPhase,
     snapshot,
     subscribe(fn) { listeners.add(fn); fn(snapshot()); return () => listeners.delete(fn); },
   };

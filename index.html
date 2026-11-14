@@ -45,6 +45,14 @@
       </h1>
       <p class="intro__desc">생년월일로 당신의 별자리를 찾고,<br>오늘의 운세를 작은 종이에 담아드립니다.</p>
       <button type="button" class="btn btn--solid btn--sans start__btn" data-action="go" data-to="birth">시작하기</button>
+      <!-- 일반 모드 전용: 전시 담당자가 시작 화면에서 프린터를 연결해 두는 작은 상태 버튼 -->
+      <button type="button" class="printer-status" id="start-printer" data-action="printer-connect" hidden>
+        <svg class="printer-status__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M7 8V3.5h10V8" /><rect x="3" y="8" width="18" height="8.5" rx="2" /><path d="M7 13.5h10V20.5H7z" />
+        </svg>
+        <span class="printer-status__label">프린터 연결</span>
+      </button>
+      <p class="printer-status__msg" id="start-printer-msg" role="status" aria-live="polite"></p>
     </section>
 
     <!-- PAGE 02 — 생년월일 입력 -->

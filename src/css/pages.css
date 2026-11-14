@@ -351,3 +351,66 @@
   filter: none;
   opacity: 0.85;
 }
+
+/* ── PAGE 01 프린터 상태 버튼(일반 모드 전용): 로고와 도움말 사이 상단 가운데, 도움말 버튼과 같은 세로 중심 ── */
+.printer-status {
+  position: absolute;
+  left: 960px;
+  top: 125.5px;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  height: calc(46px * var(--ts));
+  padding: 0 calc(20px * var(--ts)) 0 calc(16px * var(--ts));
+  display: inline-flex;
+  align-items: center;
+  gap: calc(9px * var(--ts));
+  border: 1.5px solid rgba(254, 239, 207, 0.55);
+  border-radius: 999px;
+  background: rgba(14, 45, 64, 0.55);
+  font-family: var(--font-sans);
+  font-size: calc(19px * var(--ts));
+  font-weight: 400;
+  color: var(--c-title-accent);
+  white-space: nowrap;
+}
+
+.printer-status__icon {
+  width: calc(22px * var(--ts));
+  height: calc(22px * var(--ts));
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+/* 연결됨: 크림색으로 채워 한눈에 구분 */
+.printer-status[data-status="connected"] {
+  background: var(--c-title-accent);
+  border-color: var(--c-title-accent);
+  color: var(--c-primary);
+  cursor: default;
+}
+
+.printer-status[data-status="connecting"] {
+  opacity: 0.75;
+}
+
+.printer-status:not([data-status="connected"]):active {
+  filter: brightness(1.2);
+}
+
+.printer-status__msg {
+  position: absolute;
+  left: 0;
+  width: 1920px;
+  top: calc(125.5px + 23px * var(--ts) + 10px);
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: calc(17px * var(--ts));
+  color: var(--c-title-accent);
+  white-space: nowrap;
+}
+
+.printer-status__msg:empty {
+  display: none;
+}

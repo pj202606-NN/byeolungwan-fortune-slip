@@ -22,6 +22,11 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
   const chip = stage.querySelector('#printer-chip');
   const chipLabel = chip.querySelector('.printer-chip__label');
   const errorEl = stage.querySelector('#print-error');
+  // 시작 화면(R-01) 상단 가운데 상태 버튼 — 일반 모드에서만 쓴다(개발 모드는 DEV 패널이 같은 자리를 씀)
+  const startBtn = stage.querySelector('#start-printer');
+  const startLabel = startBtn.querySelector('.printer-status__label');
+  const startMsg = stage.querySelector('#start-printer-msg');
+  let startMsgTimer = 0;
   const printBtn = stage.querySelector('.result__print');
   const printBtnText = printBtn.textContent;
   const logs = [];
@@ -36,7 +41,16 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
   }
 
   function render(snap) {
-    // 결과 화면의 작은 연결 버튼: 운영 모드에서는 연결됐으면 숨김(화면을 단정하게), 개발 모드에서는 항상 표시
+    // 시작 화면 버튼: 미연결 → "프린터 연결"(누르면 기기 선택 창), 연결됨 → "프린터 연결됨"(누를 동작 없음)
+    startBtn.hidden = dev || !snap.supported;
+    const startState = snap.status === 'connecting' ? 'connecting' : snap.connected ? 'connected' : 'disconnected';
+    startBtn.dataset.status = startState;
+    startLabel.textContent = startState === 'connecting' ? '프린터 연결 중…'
+      : startState === 'connected' ? '프린터 연결됨' : '프린터 연결';
+    startBtn.setAttribute('aria-disabled', String(startState !== 'disconnected'));
+    if (startState === 'connected') setStartMsg('');
+
+    // 결과 화면의 작은 연결 버튼: 일반 모드에서는 연결이 끊긴 경우에만 복구용으로 표시, 개발 모드에서는 항상 표시
     const showChip = snap.supported && (dev || !(snap.connected));
     chip.hidden = !showChip;
     chip.dataset.status = snap.connected && snap.status !== 'printing' ? 'connected' : snap.status;
@@ -50,6 +64,12 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
     printBtn.textContent = printing ? '출력 중…' : printBtnText;
 
     if (panel) renderPanel(snap);
+  }
+
+  function setStartMsg(text) {
+    clearTimeout(startMsgTimer);
+    startMsg.textContent = text;
+    if (text) startMsgTimer = setTimeout(() => { startMsg.textContent = ''; }, 6000);
   }
 
   function showError(err) { errorEl.textContent = errorText(err); }
@@ -162,14 +182,18 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
     }
   }
 
-  async function connect() {
+  /** 기존 PT210A 연결 로직을 그대로 쓴다. 실패 안내는 버튼을 누른 화면(시작/결과)에 표시 */
+  async function connect(fromStart = false) {
+    if (printer.isConnected()) return true;
     clearError();
+    setStartMsg('');
     try {
       await printer.connect();
       return true;
     } catch (err) {
       log(`연결 실패 [${err.code}] ${err.message}`);
-      if (err.code !== 'CANCELLED' || !dev) showError(err);
+      if (fromStart) setStartMsg(errorText(err));
+      else if (err.code !== 'CANCELLED' || !dev) showError(err);
       return false;
     }
   }
