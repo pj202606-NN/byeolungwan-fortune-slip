@@ -8,6 +8,9 @@ import { todayInKorea, formatYmd } from './domain/date-utils.js';
 import { calendarTag } from './domain/birthdate.js';
 import { DEMO_STAR } from './data/demo-result.js';
 import { initPwa } from './pwa.js';
+import { createPt210aPrinter } from './print/pt210a-ble.js';
+import { createPrintService } from './print/print-service.js';
+import { createPrinterUi } from './ui/printer-ui.js';
 
 const PAGES = ['start', 'birth', 'result', 'end'];
 
@@ -23,6 +26,13 @@ const state = {
   birth: null,   // domain/birthdate.js의 BirthDate
   result: null,  // 화면(PAGE 03·04)과 출력이 함께 쓰는 결과
 };
+
+// ── 프린터: 페이지를 오가도 연결은 유지된다(체험 상태 초기화와 무관) ──
+let printerUi = null;
+const printerLog = (msg) => printerUi && printerUi.log(msg);
+const printer = createPt210aPrinter({ log: printerLog });
+const printService = createPrintService(printer, { log: printerLog });
+printerUi = createPrinterUi(stage, { printer, printService, dev: DEV, getResult: () => state.result });
 
 const birthForm = createBirthForm(stage.querySelector('#birth-form'), {
   onValid: (birth) => {
@@ -40,6 +50,7 @@ function go(page) {
     document.activeElement.blur();
   }
   birthForm.closeMenu();
+  printerUi.clearError();
   stage.querySelectorAll('.page').forEach((el) => {
     el.hidden = el.dataset.page !== page;
   });
@@ -110,12 +121,24 @@ const actions = {
   },
   'close-help': () => help.close(),
   'submit-birth': () => birthForm.submit(),
-  print: () => {
-    // 프린터 미연결: 운영 모드에서는 출력 성공이 확인되지 않으므로 이동하지 않는다.
-    if (!DEV) return;
-    setDevPrintBadge(true);
-    go('end');
+  print: async () => {
+    if (printService.busy || !state.result) return; // 출력 중 중복 클릭 방지
+    printerUi.clearError();
+    // 개발 모드 + 프린터 없음: 기존 시연 흐름(실제 인쇄 아님을 표시)
+    if (DEV && !printer.isConnected()) {
+      setDevPrintBadge(true);
+      go('end');
+      return;
+    }
+    const result = await printService.printReceipt(state.result);
+    if (result.status === 'printed') {
+      setDevPrintBadge(false);
+      if (state.page === 'result') go('end'); // 실제 전송 성공 후에만 완료 화면
+    } else if (result.status === 'failed') {
+      printerUi.showError(result.error);
+    }
   },
+  'printer-connect': () => printerUi.connect(),
 };
 
 stage.addEventListener('click', (event) => {
@@ -140,6 +163,7 @@ const pwa = initPwa({
 
 initStage(stage);
 preloadIcon(DEMO_STAR.iconPath);
+printer.reconnectRemembered(); // 새로고침·재실행 후: 이전에 허용한 프린터를 터치 없이 다시 연결(지원 브라우저만)
 
 if (DEV) {
   // 화면 확인용: ?dev=1&screen=result&help=1
@@ -151,5 +175,5 @@ if (DEV) {
   }
   if (PAGES.includes(screen)) go(screen);
   if (params.get('help') === '1') help.open();
-  window.__fortuneSlip = { state }; // 개발 모드에서만 상태 확인용으로 노출
+  window.__fortuneSlip = { state, printer, printService }; // 개발 모드에서만 상태 확인용으로 노출
 }

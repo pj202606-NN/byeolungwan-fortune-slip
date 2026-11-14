@@ -287,3 +287,79 @@ input.field:focus {
   line-height: 1;
   pointer-events: none;
 }
+
+/* ── 개발 모드 전용 프린터 패널 (?dev=1에서만 JS가 생성) ── */
+.dev-printer {
+  position: absolute;
+  left: 560px;
+  top: 30px;
+  z-index: 15;
+  width: 800px;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  color: #FFFFFF;
+}
+
+.dev-printer__toggle {
+  display: block;
+  margin: 0 auto;
+  padding: 8px 18px;
+  border-radius: 6px;
+  background: #1F3A4D;
+  border: 1px solid #5B7A90;
+  color: #FFFFFF;
+  font-size: 18px;
+}
+
+.dev-printer__body {
+  margin-top: 8px;
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(14, 29, 40, 0.94);
+  border: 1px solid #5B7A90;
+}
+
+.dev-printer__info,
+.dev-printer__log {
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.dev-printer__log {
+  min-height: 60px;
+  max-height: 190px;
+  overflow: auto;
+  color: #BFD3E0;
+}
+
+.dev-printer__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dev-printer__row button,
+.dev-printer__row select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #5B7A90;
+  background: #2B4B61;
+  color: #FFFFFF;
+  font-size: 17px;
+}
+
+.dev-printer__preview {
+  text-align: center;
+}
+
+.dev-printer__receipt {
+  display: block;
+  margin: 0 auto 6px;
+  background: #FFFFFF;
+  image-rendering: pixelated;
+  max-height: 560px;
+}

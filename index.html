@@ -104,6 +104,11 @@
 
       <button type="button" class="btn btn--outline btn--serif page__btn-left" data-action="go" data-to="birth">다시 입력하기</button>
       <button type="button" class="btn btn--solid btn--serif result__print" data-action="print">운세지 출력하기</button>
+      <!-- 프린터: 운영 모드에서는 연결되지 않았을 때만 작은 연결 버튼, 출력 실패 시 한 줄 안내 -->
+      <p class="print-error" id="print-error" role="alert" aria-live="assertive"></p>
+      <button type="button" class="printer-chip" id="printer-chip" data-action="printer-connect" hidden>
+        <span class="printer-chip__dot" aria-hidden="true"></span><span class="printer-chip__label">프린터 연결</span>
+      </button>
     </section>
 
     <!-- PAGE 04 — 출력 완료 -->
