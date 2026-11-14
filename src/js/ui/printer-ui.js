@@ -24,7 +24,7 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
   const errorEl = stage.querySelector('#print-error');
   // 시작 화면(R-01) 상단 가운데 상태 버튼 — 일반 모드에서만 쓴다(개발 모드는 DEV 패널이 같은 자리를 씀)
   const startBtn = stage.querySelector('#start-printer');
-  const startLabel = startBtn.querySelector('.printer-status__label');
+  const startLabel = startBtn.querySelector('.printer-chip__label');
   const startMsg = stage.querySelector('#start-printer-msg');
   let startMsgTimer = 0;
   const printBtn = stage.querySelector('.result__print');
@@ -48,6 +48,7 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
     startLabel.textContent = startState === 'connecting' ? '프린터 연결 중…'
       : startState === 'connected' ? '프린터 연결됨' : '프린터 연결';
     startBtn.setAttribute('aria-disabled', String(startState !== 'disconnected'));
+    startBtn.disabled = startState === 'connecting'; // R-03 버튼과 같은 규칙(연결 중에는 disabled → 반투명)
     if (startState === 'connected') setStartMsg('');
 
     // 결과 화면의 작은 연결 버튼: 일반 모드에서는 연결이 끊긴 경우에만 복구용으로 표시, 개발 모드에서는 항상 표시
