@@ -1,12 +1,13 @@
 import { initStage } from './stage.js';
 import { createHelpModal } from './ui/help-modal.js';
 import { createBirthForm } from './ui/birth-form.js';
-import { renderIcon, preloadIcon } from './ui/star-icon.js';
+import { renderIcon } from './ui/star-icon.js';
 import { resolveStar } from './domain/star-resolver.js';
-import { getTodayFortune } from './domain/fortune-repo.js';
-import { todayInKorea, formatYmd } from './domain/date-utils.js';
+import { getTodayFortune, preloadFortunes } from './domain/fortune-repo.js';
+import { loadMansions, mansionById } from './domain/mansions.js';
+import { getIssueDate, FORTUNE_FIRST_DAY, FORTUNE_LAST_DAY } from './domain/receipt-date.js';
+import { formatYmd } from './domain/date-utils.js';
 import { calendarTag } from './domain/birthdate.js';
-import { DEMO_STAR } from './data/demo-result.js';
 import { initPwa } from './pwa.js';
 import { createPt210aPrinter } from './print/pt210a-ble.js';
 import { createPrintService } from './print/print-service.js';
@@ -16,6 +17,9 @@ const PAGES = ['start', 'birth', 'result', 'end'];
 
 const params = new URLSearchParams(location.search);
 const DEV = params.get('dev') === '1';
+// 개발 모드 전용 테스트 날짜(?dev=1&date=2026-11-23 또는 개발 패널). 일반 모드에서는 항상 실제 한국 날짜.
+const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
+let devDateIso = DEV && ISO_RE.test(params.get('date') || '') ? params.get('date') : null;
 
 const stage = document.getElementById('stage');
 const help = createHelpModal(stage);
@@ -32,14 +36,32 @@ let printerUi = null;
 const printerLog = (msg) => printerUi && printerUi.log(msg);
 const printer = createPt210aPrinter({ log: printerLog });
 const printService = createPrintService(printer, { log: printerLog });
-printerUi = createPrinterUi(stage, { printer, printService, dev: DEV, getResult: () => state.result });
+printerUi = createPrinterUi(stage, {
+  printer,
+  printService,
+  dev: DEV,
+  getResult: () => state.result,
+  // 개발 패널: 테스트 날짜·별자리 선택 미리보기
+  preview: {
+    dateRange: [FORTUNE_FIRST_DAY, FORTUNE_LAST_DAY],
+    getTestDate: () => devDateIso,
+    setTestDate: (iso) => { devDateIso = DEV && ISO_RE.test(iso || '') ? iso : null; },
+    listStars: () => loadMansions(),
+    buildResultForStar: async (id) => resultFor(await mansionById(id), null),
+  },
+});
 
 const birthForm = createBirthForm(stage.querySelector('#birth-form'), {
-  onValid: (birth) => {
-    state.birth = birth;
-    state.result = buildResult(birth);
-    renderResult(state.result);
-    go('result');
+  onValid: async (birth) => {
+    try {
+      state.birth = birth;
+      state.result = await buildResult(birth);
+      renderResult(state.result);
+      go('result');
+    } catch (err) {
+      console.error(err);
+      stage.querySelector('#birth-error').textContent = '운세 정보를 불러오지 못했습니다. 다시 눌러 주세요.';
+    }
   },
 });
 
@@ -60,6 +82,25 @@ function go(page) {
     printer.tryReconnect(); // 끊겨 있으면 터치 없이 가능한 재연결만 시도(실패 시 상단 버튼으로 연결)
     pwa.notifySafePoint(); // 대기 중인 새 버전이 있으면 이때만 적용
   }
+  if (page === 'result' || page === 'end') fitFortuneCards();
+}
+
+// 화면 카드(R-03·R-04)의 운세 문장: 카드 크기는 그대로 두고, 넘칠 때만 글자를 줄여 카드 안에 맞춘다.
+function fitFortuneCards() {
+  stage.querySelectorAll('.page:not([hidden]) .fortune-card__body').forEach((el) => {
+    el.style.fontSize = '';
+    el.style.lineHeight = '';
+    const card = el.closest('.fortune-card');
+    const foot = card.querySelector('.fortune-card__foot');
+    const maxH = foot.offsetTop - el.offsetTop - 12;
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    const ratio = parseFloat(getComputedStyle(el).lineHeight) / size;
+    while (el.scrollHeight > maxH && size > 18) {
+      size -= 1;
+      el.style.fontSize = `${size}px`;
+      el.style.lineHeight = `${Math.round(size * Math.min(ratio, 1.55))}px`;
+    }
+  });
 }
 
 function resetSession() {
@@ -69,17 +110,46 @@ function resetSession() {
   setDevPrintBadge(false);
 }
 
-// ── 결과 구성: 판정(star-resolver)·운세 조회(fortune-repo)·표시용 문구를 한 객체로 ──
-function buildResult(birth) {
-  const { star, isDemo: starIsDemo } = resolveStar(birth);
-  const date = todayInKorea();
-  const fortune = getTodayFortune({ star, birth, date });
+// ── 결과 구성: 판정(star-resolver)·발행일(receipt-date)·운세 조회(fortune-repo)를 한 객체로 ──
+// 발행일은 부를 때마다 다시 계산한다(인쇄 버튼을 누른 시점 기준).
+async function resultFor(mansion, birth) {
+  const issue = getIssueDate({ overrideIso: DEV ? devDateIso : null });
+  const fortune = await getTodayFortune({ mansion, dateIso: issue.iso });
   return {
-    isDemo: starIsDemo || fortune.isDemo,
-    star: { ...star, footer: `${star.name} · ${star.hanja} · ${star.alias}` },
-    birth: { ...birth, label: `${formatYmd(birth.input)} ${calendarTag(birth)}` },
-    fortune: { ...fortune, dateLabel: formatYmd(date) },
+    isDemo: false,
+    mansionId: mansion.id,
+    star: {
+      id: mansion.id,
+      name: mansion.suName,
+      hanja: mansion.hanja,
+      alias: mansion.alias,
+      iconPath: mansion.graphicPath,
+      footer: `${mansion.suName} · ${mansion.hanja} · ${mansion.alias}`,
+    },
+    birth: birth ? { ...birth, label: `${formatYmd(birth.input)} ${calendarTag(birth)}` } : null,
+    fortune: { date: issue.iso, dateLabel: formatYmd(issue), lines: [fortune.text], text: fortune.text, source: fortune.source },
+    // 운세지(영수증) 전용 데이터 — 화면과 같은 값
+    receipt: {
+      issueDate: { y: issue.y, m: issue.m, d: issue.d },
+      issueIso: issue.iso,
+      actualIso: issue.actualIso,
+      suName: mansion.suName,
+      hanja: mansion.hanja,
+      alias: mansion.alias,
+      graphicPath: mansion.graphicPath,
+      fortuneText: fortune.text,
+      fortuneSource: fortune.source,
+      luck: { ...mansion.luck },
+      cheer: mansion.cheer,
+      sashin: mansion.sashin,
+      chilYo: mansion.chilYo,
+    },
   };
+}
+
+async function buildResult(birth) {
+  const { mansion } = await resolveStar(birth);
+  return resultFor(mansion, birth);
 }
 
 function readPath(obj, path) {
@@ -131,6 +201,20 @@ const actions = {
       go('end');
       return;
     }
+    // 인쇄 시점에 발행일·운세를 다시 계산(자정이 지난 뒤 오래 켜진 화면도 당일 기준) — 바뀌었으면 화면도 갱신
+    let fresh;
+    try {
+      fresh = await buildResult(state.birth);
+    } catch (err) {
+      console.error(err);
+      printerUi.showError({ code: 'DATA' });
+      return;
+    }
+    if (fresh.fortune.date !== state.result.fortune.date || fresh.fortune.text !== state.result.fortune.text) {
+      state.result = fresh;
+      renderResult(state.result);
+      fitFortuneCards();
+    }
     const result = await printService.printReceipt(state.result);
     if (result.status === 'printed') {
       setDevPrintBadge(false);
@@ -163,18 +247,23 @@ const pwa = initPwa({
 });
 
 initStage(stage);
-preloadIcon(DEMO_STAR.iconPath);
+// 출력에 필요한 데이터를 미리 읽어 둔다(서비스 워커 캐시로 오프라인에서도 동작)
+loadMansions().catch((err) => console.error('생년월일 기준 데이터', err));
+preloadFortunes().catch((err) => console.error('운세 데이터', err));
 printer.reconnectRemembered(); // 새로고침·재실행 후: 이전에 허용한 프린터를 터치 없이 다시 연결(지원 브라우저만)
 
 if (DEV) {
   // 화면 확인용: ?dev=1&screen=result&help=1
   const screen = params.get('screen');
-  if (screen === 'result' || screen === 'end') {
-    state.birth = { calendar: 'solar', input: { y: 2000, m: 1, d: 1 }, isLeapMonth: false, solar: { y: 2000, m: 1, d: 1 } };
-    state.result = buildResult(state.birth);
-    renderResult(state.result);
-  }
-  if (PAGES.includes(screen)) go(screen);
-  if (params.get('help') === '1') help.open();
-  window.__fortuneSlip = { state, printer, printService }; // 개발 모드에서만 상태 확인용으로 노출
+  const openScreen = async () => {
+    if (screen === 'result' || screen === 'end') {
+      state.birth = { calendar: 'solar', input: { y: 2000, m: 1, d: 1 }, isLeapMonth: false, solar: { y: 2000, m: 1, d: 1 } };
+      state.result = await buildResult(state.birth);
+      renderResult(state.result);
+    }
+    if (PAGES.includes(screen)) go(screen);
+    if (params.get('help') === '1') help.open();
+  };
+  openScreen().catch((err) => console.error(err));
+  window.__fortuneSlip = { state, printer, printService, buildResult, resultFor, mansionById, getIssueDate: () => getIssueDate({ overrideIso: devDateIso }) }; // 개발 모드 전용
 }

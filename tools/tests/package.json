@@ -1,0 +1,10 @@
+{
+  "name": "byeolungwan-fortune-slip-tests",
+  "private": true,
+  "type": "module",
+  "description": "별운관 운세지 자동화 테스트(가짜 PT210A로 브라우저 검증). 사이트 자체는 빌드 없이 동작하며 이 폴더는 테스트 전용.",
+  "dependencies": {
+    "jsqr": "1.4.0",
+    "puppeteer-core": "23.11.1"
+  }
+}

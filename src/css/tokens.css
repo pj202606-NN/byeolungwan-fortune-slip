@@ -19,6 +19,13 @@
   font-weight: 700;
   font-display: block;
 }
+/* 28수 한자 29자 전용(Noto Sans KR 부분 추출본, OFL) — 마루부리·프리텐다드에 없는 한자를 운세지에 찍기 위함 */
+@font-face {
+  font-family: 'ByeolungwanHanja';
+  src: url('../../public/fonts/hanja/ByeolungwanHanja-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
 @font-face {
   font-family: 'Pretendard';
   src: url('../../public/fonts/pretendard/PretendardVariable.woff2') format('woff2-variations');

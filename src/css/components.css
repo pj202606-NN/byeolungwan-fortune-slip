@@ -158,7 +158,10 @@ input.field:focus {
   line-height: calc(55px * var(--ts));
   letter-spacing: calc(-0.5px * var(--ts));
   color: #111111;
-  white-space: nowrap;
+  /* 실제 운세 문장은 길이가 다양해 카드 폭에서 자동 줄바꿈(넘치면 app.js가 글자 크기만 줄여 카드 안에 맞춤) */
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .fortune-card__foot {
@@ -330,7 +333,7 @@ input.field:focus {
 
 .dev-printer__log {
   min-height: 60px;
-  max-height: 190px;
+  max-height: 96px; /* 펼친 패널이 입력 화면의 연·월·일 칸(y≈570)을 가리지 않도록(최근 줄만 보이고 스크롤) */
   overflow: auto;
   color: #BFD3E0;
 }
@@ -354,14 +357,25 @@ input.field:focus {
 
 .dev-printer__preview {
   text-align: center;
+  max-height: 620px;
+  overflow: auto; /* 운세지 전체 길이를 원래 크기로 보여 주고 스크롤(QR을 휴대폰으로 비춰 확인할 수 있게) */
+}
+
+.dev-printer__summary {
+  margin: 0 0 10px;
+  text-align: left;
+  white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #DCE8F0;
 }
 
 .dev-printer__receipt {
   display: block;
   margin: 0 auto 6px;
+  width: 384px; /* 실제 인쇄 폭 그대로(1 dot = 1px) */
   background: #FFFFFF;
   image-rendering: pixelated;
-  max-height: 560px;
 }
 
 .dev-printer__hint {

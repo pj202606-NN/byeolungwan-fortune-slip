@@ -12,3 +12,13 @@ _site/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# 자동화 테스트 의존성·출력물
+tools/tests/node_modules/
+tools/tests/output/
+
+# 로컬 디자인 참고 자료 및 사용하지 않는 원본 데이터(삭제하지 않고 보존)
+references/receipt/
+src/data/receipt/28su_database_final*.js
+src/data/receipt/byeolungwan_28su_descriptions_v3.json
+src/data/receipt/byeolungwan_28su_fortunes_20261119_25_v6*.json

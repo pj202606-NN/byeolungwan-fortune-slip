@@ -12,13 +12,14 @@ const ERROR_TEXT = {
   CONNECT_FAILED: '프린터에 연결하지 못했습니다. 프린터 전원을 확인해 주세요.',
   NOT_ALLOWED: '블루투스 권한이 없습니다. 프린터 연결을 다시 눌러 주세요.',
   UNSUPPORTED: '이 기기에서는 블루투스 프린터를 쓸 수 없습니다.',
+  DATA: '운세 정보를 불러오지 못했습니다. 다시 눌러 주세요.',
 };
 
 export function errorText(err) {
   return (err && ERROR_TEXT[err.code]) || '출력하지 못했습니다. 다시 눌러 주세요.';
 }
 
-export function createPrinterUi(stage, { printer, printService, dev, getResult }) {
+export function createPrinterUi(stage, { printer, printService, dev, getResult, preview = null }) {
   const chip = stage.querySelector('#printer-chip');
   const chipLabel = chip.querySelector('.printer-chip__label');
   const errorEl = stage.querySelector('#print-error');
@@ -37,7 +38,11 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
     logs.push(line);
     if (logs.length > 40) logs.shift();
     if (dev) console.info('[PRINTER]', msg);
-    if (panel) panel.querySelector('.dev-printer__log').textContent = logs.slice(-8).join('\n');
+    if (panel) {
+      const el = panel.querySelector('.dev-printer__log');
+      el.textContent = logs.slice(-8).join('\n');
+      el.scrollTop = el.scrollHeight; // 최신 줄이 보이도록
+    }
   }
 
   function render(snap) {
@@ -109,6 +114,11 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
           <button type="button" data-dev="calibA">보정+급지 A</button>
           <button type="button" data-dev="calibB">보정+급지 B</button>
         </div>
+        <div class="dev-printer__row" aria-label="운세지 미리보기 설정">
+          <span class="dev-printer__hint">운세지 ·</span>
+          <label>테스트 날짜 <select data-preview="date"></select></label>
+          <label>미리보기 별자리 <select data-preview="star"><option value="">현재 결과</option></select></label>
+        </div>
         <pre class="dev-printer__log"></pre>
         <div class="dev-printer__preview" hidden></div>
       </div>`;
@@ -127,6 +137,7 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
         log(`설정 변경: ${key} = ${sel.value}`);
       });
     });
+    if (preview) setupPreviewControls();
     panel.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-dev]');
       if (!btn) return;
@@ -153,19 +164,57 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult }
     });
   }
 
+  // 테스트 날짜(개발 모드 전용): 실제 날짜 / 11-19 ~ 11-26, 미리보기 별자리: 현재 결과 / 28개
+  async function setupPreviewControls() {
+    const dateSel = panel.querySelector('[data-preview="date"]');
+    const starSel = panel.querySelector('[data-preview="star"]');
+    const dates = ['2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22', '2026-11-23', '2026-11-24', '2026-11-25', '2026-11-26'];
+    dateSel.innerHTML = `<option value="">실제 날짜(한국)</option>${dates.map((d) => `<option value="${d}">${d}</option>`).join('')}`;
+    dateSel.value = preview.getTestDate() || '';
+    dateSel.addEventListener('change', () => {
+      preview.setTestDate(dateSel.value || null);
+      log(`테스트 날짜: ${dateSel.value || '실제 날짜'} (발행일은 ${preview.dateRange[0]}~${preview.dateRange[1]} 범위로 맞춤)`);
+    });
+    try {
+      const stars = await preview.listStars();
+      starSel.insertAdjacentHTML('beforeend', stars.map((m) => `<option value="${m.id}">${String(m.id).padStart(2, '0')} ${m.suName} ${m.hanja} · ${m.alias}</option>`).join(''));
+    } catch (err) {
+      log(`별자리 목록을 불러오지 못함: ${err.message}`);
+    }
+  }
+
   async function togglePreview() {
     const box = panel.querySelector('.dev-printer__preview');
     if (!box.hidden) { box.hidden = true; return; }
-    const result = getResult();
-    if (!result) { log('미리보기: 결과 데이터가 없습니다(결과 화면에서 눌러 주세요)'); return; }
+    const starId = preview ? panel.querySelector('[data-preview="star"]').value : '';
+    let result;
+    try {
+      result = starId ? await preview.buildResultForStar(Number(starId)) : getResult();
+    } catch (err) {
+      log(`미리보기 데이터 오류: ${err.message}`);
+      return;
+    }
+    if (!result) { log('미리보기: 결과 데이터가 없습니다(결과 화면에서 누르거나 미리보기 별자리를 고르세요)'); return; }
     const { bitmap, bytes, feed } = await printService.buildReceipt(result);
     const img = bitmapPreview(bitmap);
     img.className = 'dev-printer__receipt';
-    box.replaceChildren(img, Object.assign(document.createElement('p'), {
-      textContent: `${bitmap.widthBytes * 8}×${bitmap.height} dots · 이미지 ESC/POS ${bytes.length} bytes · 인쇄 후 별도 급지 ${feed}줄`,
-    }));
+    const r = result.receipt || {};
+    const info = Object.assign(document.createElement('p'), {
+      className: 'dev-printer__summary',
+      textContent: [
+        `${bitmap.widthBytes * 8}×${bitmap.height} dots · 이미지 ESC/POS ${bytes.length} bytes · 인쇄 후 별도 급지 ${feed}줄`,
+        r.suName ? `${r.suName} ${r.hanja} · ${r.alias} (${r.sashin}, 칠요 ${r.chilYo})` : '',
+        r.issueIso ? `발행일 ${r.issueIso}${r.actualIso !== r.issueIso ? ` (기준 날짜 ${r.actualIso} → 데이터 범위로 맞춤)` : ''}` : '',
+        r.fortuneSource ? `운세 출처: ${r.fortuneSource}` : '',
+        r.fortuneText ? `오늘의 운세: ${r.fortuneText}` : '',
+        r.luck ? `행운의 방위 ${r.luck.direction} · 오방색 ${r.luck.color} · 행성 ${r.luck.planet}` : '',
+        r.cheer ? `응원 문구: “${r.cheer}”` : '',
+        'QR 확인: 아래 미리보기의 QR 두 개를 휴대폰 카메라로 비춰 각각 열리는지 확인하세요.',
+      ].filter(Boolean).join('\n'),
+    });
+    box.replaceChildren(info, img);
     box.hidden = false;
-    log(`미리보기 생성 ${bitmap.height}줄, ${bytes.length} bytes`);
+    log(`미리보기 생성 ${bitmap.height}줄, ${bytes.length} bytes${r.issueIso ? ` · 발행일 ${r.issueIso}` : ''}`);
   }
 
   function renderPanel(snap) {

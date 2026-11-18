@@ -43,6 +43,8 @@ jobs:
         run: |
           mkdir _site
           cp -r index.html manifest.webmanifest sw.js .nojekyll src public vendor _site/
+          # 응원 문구 원문은 저장소의 검증용으로 보존하고, 런타임 배포에는 cheers.js만 포함한다.
+          find _site/src/data/receipt -name '*.md' -delete
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
