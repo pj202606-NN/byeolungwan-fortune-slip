@@ -104,7 +104,7 @@ ok(hex(last.bytes) === '1B 40 1B 32 1B 64 06', `운세지 후 급지 = ${hex(las
 ok(c.filter((x) => x.bytes.length === 7 && x.bytes[0] === 0x1b && x.bytes[1] === 0x40).length === 1, '급지 명령 정확히 1회');
 const gap = last.t - c[c.length - 2].t;
 const rowsSent = image.length > 0 ? (() => { let r = 0; for (let i = 0; i < image.length;) { if (image[i] === 0x1d && image[i + 1] === 0x76 && image[i + 2] === 0x30) { const h = image[i + 6] | (image[i + 7] << 8); r += h; i += 8 + 48 * h; } else i++; } return r; })() : 0;
-const expectWait = Math.min(3000, Math.round(400 + (rowsSent / 400) * 1000));
+const expectWait = Math.min(5000, Math.round(400 + (rowsSent / 400) * 1000));
 ok(gap >= expectWait - 50 && gap < expectWait + 700, `이미지 마지막 청크 → 급지까지 ${Math.round(gap)}ms (자동 대기 식 400+줄수/400초 → ${expectWait}ms)`);
 ok(hex(image.slice(-3)) === '1B 61 00' && image[0] === 0x1b && image[1] === 0x40, '이미지 전송 = ESC @ … 래스터 … ESC a 0 (급지 없음)');
 ok(Math.max(...c.slice(0, -1).map((x) => x.bytes.length)) <= 64 && c.every((x) => x.mode === 'resp'), '이미지·급지 모두 저장된 64B·with response로 전송');

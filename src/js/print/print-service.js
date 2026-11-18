@@ -13,7 +13,8 @@ const DOTS_PER_SEC = 50 * 8; // PT210A 인쇄 속도 약 50mm/s(보수적) × 8 
 const DOTS_PER_FEED_LINE = 28; // PT210A 실측 줄당 약 3.5mm × 8 dots/mm (급지 대기 시간 추정용)
 const MIN_DELAY_BEFORE_INIT_MS = 1500; // ESC @는 미인쇄 버퍼를 지우므로, 7B 방식은 최소 이만큼 기다린 뒤 보낸다
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const printWaitMs = (rows) => Math.min(3000, Math.round(400 + (rows / DOTS_PER_SEC) * 1000));
+// 확대된 운세지에도 기존 400 dots/s 추정치를 적용한다. BLE 전송·급지 명령과 사용자 고정 대기는 유지한다.
+const printWaitMs = (rows) => Math.min(5000, Math.round(400 + (rows / DOTS_PER_SEC) * 1000));
 const feedWaitMs = (n) => Math.min(1500, Math.round(200 + ((n * DOTS_PER_FEED_LINE) / DOTS_PER_SEC) * 1000));
 
 export function createPrintService(printer, { log = () => {} } = {}) {

@@ -23,7 +23,7 @@
 
 1. **PT-210A 전송·급지:** `src/js/print/pt210a-ble.js`, `src/js/print/escpos.js`, `src/js/print/print-service.js`의 전송 부분
    - Service `49535343-fe7d-4ae5-8fa9-9fafd205e455`, Write `49535343-8841-43f4-a8d4-ecbe34729bb3`, Notify `49535343-1e4d-4bd9-ba61-23c647249616`
-   - 이미지 전송 후 대기(`400ms + 이미지 줄 수/400초`, 최대 3초. ESC @ 방식은 최소 1.5초) → 별도 쓰기로 급지 `1B 40 1B 32 1B 64 06` (B 방식, 6줄 ≈ 21mm)
+   - 이미지 전송 후 대기(`400ms + 이미지 줄 수/400초`, 최대 5초. ESC @ 방식은 최소 1.5초) → 별도 쓰기로 급지 `1B 40 1B 32 1B 64 06` (B 방식, 6줄 ≈ 21mm). 전체 확대 요청에 따라 대기 상한만 3→5초로 조정했습니다.
    - 청크 크기·간격·쓰기 방식의 코드 기본값(128B / 10ms / auto)
 2. **태블릿에 저장된 프린터 설정:** `localStorage['byeolungwan.printer']`의 저장 키와 병합 방식을 바꾸지 않습니다. 실기기에서 맞춘 값(청크 64B 등)이 여기에만 있습니다.
 3. **원본 이미지:** `public/assets/*`, `public/assets/receipt/*`(별자리 SVG 28개, QR SVG 2개), `logo.svg`, `bg-01.png`를 수정하지 않습니다. 색 변환은 메모리에서만 합니다.

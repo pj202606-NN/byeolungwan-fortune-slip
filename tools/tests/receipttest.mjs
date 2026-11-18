@@ -66,15 +66,16 @@ const summary = await page.evaluate(async (dates) => {
       sel.value = d; sel.dispatchEvent(new Event('change'));
       const res = await S.resultFor(await S.mansionById(id), null);
       const bm = await renderReceipt(res);
-      // 그래픽 영역(133×133 @ x125,y237) 검정 비율, QR 영역 비트 추출
+      // 실제 그래픽 영역 검정 비율, QR 영역 비트 추출
       const bit = (x, y) => (bm.bits[y * bm.widthBytes + (x >> 3)] >> (7 - (x & 7))) & 1;
-      let gBlack = 0; for (let y = 237; y < 370; y++) for (let x = 125; x < 258; x++) gBlack += bit(x, y);
+      const gs = bm.layout.graphicSize, gx = Math.round((384 - gs) / 2), gy = bm.layout.graphicTop;
+      let gBlack = 0; for (let y = gy; y < gy + gs; y++) for (let x = gx; x < gx + gs; x++) gBlack += bit(x, y);
       const qr = (x0) => { const arr = []; const pad = 16; for (let y = bm.layout.qrTop - pad; y < bm.layout.qrTop + bm.layout.qrSize + pad; y++) for (let x = x0 - pad; x < x0 + bm.layout.qrSize + pad; x++) { const v = bit(x, y) ? 0 : 255; arr.push(v, v, v, 255); } return arr; };
       const bytes = buildRasterPrint(bm);
       rows.push({
         d, id, issue: res.receipt.issueIso, name: `${res.receipt.suName} ${res.receipt.hanja}`, alias: res.receipt.alias, text: res.receipt.fortuneText, src: res.receipt.fortuneSource,
         luck: res.receipt.luck, cheer: res.receipt.cheer, w: bm.widthBytes * 8, h: bm.height, layout: bm.layout, bodyLines: bm.layout.bodyLines, cheerLines: bm.layout.cheerLines,
-        gBlack, gTotal: 133 * 133, qrApp: id === 1 || id === 24 ? qr(bm.layout.qrXs[0]) : null, qrWeb: id === 1 || id === 24 ? qr(bm.layout.qrXs[1]) : null,
+        gBlack, gTotal: gs * gs, qrApp: id === 1 || id === 24 ? qr(bm.layout.qrXs[0]) : null, qrWeb: id === 1 || id === 24 ? qr(bm.layout.qrXs[1]) : null,
         rs: rasterSummary(bm), bytes: bytes.length, last3: [...bytes.slice(-3)],
       });
     }
@@ -84,18 +85,20 @@ const summary = await page.evaluate(async (dates) => {
 ok(summary.length === 140, `렌더링 ${summary.length}건(28개 × 5일)`);
 ok(summary.every((r) => r.w === 384), '모든 운세지 폭 384 dots');
 ok(summary.every((r) => r.layout.bodyLeft === 21.5 && r.layout.bodyWidth === 300 && r.layout.bodyAlign === 'left'), '본문만 300px·좌측 정렬, 왼쪽 21.5px 유지');
-ok(summary.every((r) => r.layout.nameDividerY === 464), '이름 아래 점선 452 → 464px(+12px)');
-ok(summary.every((r) => r.layout.qrSize === 66), 'QR 두 개 모두 66px');
+ok(summary.every((r) => r.layout.nameDividerY - r.layout.aliasBottom === 51), '이름 아래 잉크 끝~점선 51px');
+ok(summary.every((r) => r.layout.qrSize === 110), 'QR 두 개 모두 110px');
 const hs = summary.map((r) => r.h); ok(Math.min(...hs) > 800, `세로 길이는 내용에 따라 변함: ${Math.min(...hs)}~${Math.max(...hs)} dots (${(Math.min(...hs) / 8).toFixed(0)}~${(Math.max(...hs) / 8).toFixed(0)}mm)`);
+ok(summary.every(r => r.layout.textBounds.every(b => b.left >= 0 && b.right <= 384 && b.top >= 0 && b.bottom < r.h)), '전체 글자 영역이 384px 폭과 동적 이미지 높이 안에 들어감(140건)');
+ok(summary.every(r => r.layout.bodyFontSize === 24 && r.layout.bodyPitch === 35 && r.layout.bodyDividerY - r.layout.bodyBottom === 45 && r.layout.qrTop - r.layout.cheerBottom >= 62), '본문 24px·행간 35px, 본문·응원 문구·QR 간 충돌 없음');
 ok(summary.every((r) => r.issue === r.d), '발행일 = 데이터 날짜');
 ok(summary.every((r) => r.bodyLines.join('').replace(/\s/g, '') === r.text.replace(/\s/g, '')), '운세 본문이 줄바꿈만 되고 글자 하나도 빠지지 않음(140건)');
 const maxLines = Math.max(...summary.map((r) => r.bodyLines.length)); const minLines = Math.min(...summary.map((r) => r.bodyLines.length));
 ok(true, `본문 줄 수 ${minLines}~${maxLines}줄 — 줄 수만큼 아래 요소가 내려가고 영수증이 길어짐`);
 ok(summary.every((r) => r.cheerLines.join(' ').replace(/\s+/g, ' ') === `“${r.cheer}”`), '응원 문구가 원문 그대로 “ ”와 함께 출력(28개)');
-ok(summary.every((r) => r.gBlack > 150 && r.gBlack < r.gTotal * 0.25), `별자리 그래픽이 검정으로 찍히고 회색 네모 없음(검정 비율 ${Math.min(...summary.map((r) => r.gBlack))}~${Math.max(...summary.map((r) => r.gBlack))} / ${133 * 133} dots)`);
+ok(summary.every((r) => r.gBlack > 150 && r.gBlack < r.gTotal * 0.25), `별자리 그래픽이 검정으로 찍히고 회색 네모 없음(검정 비율 ${Math.min(...summary.map((r) => r.gBlack))}~${Math.max(...summary.map((r) => r.gBlack))} / ${180 * 180} dots)`);
 ok(summary.every((r) => r.rs.lastRows > 0 && r.rs.rasterBytes === 48 * r.h && r.last3.join() === '27,97,0'), '이미지 전송 데이터: 폭 48바이트 × 전체 높이, 끝은 ESC a 0(급지는 기존대로 별도 전송)');
 const qrRows = summary.filter((r) => r.qrApp);
-const qrDecoded = qrRows.map((r) => [decode(r.qrApp, 98, 98), decode(r.qrWeb, 98, 98)]);
+const qrDecoded = qrRows.map((r) => [decode(r.qrApp, r.layout.qrSize + 32, r.layout.qrSize + 32), decode(r.qrWeb, r.layout.qrSize + 32, r.layout.qrSize + 32)]);
 ok(qrDecoded.every(([a, w]) => a === refApp && w === refWeb), `최종 흑백 비트맵에서 QR 2개 판독 성공(${qrRows.length * 2}건): 원본과 같은 주소`);
 // 대표 4개(사신수별) 내용 확인
 for (const id of [3, 12, 17, 24]) {
@@ -169,7 +172,7 @@ const last = calls[calls.length - 1]; const image = calls.slice(0, -1).flatMap((
 const hex = (a) => a.map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
 ok(hex(last.bytes) === '1B 40 1B 32 1B 64 06', `기존 급지 패킷 그대로: ${hex(last.bytes)}`);
 const gap = last.t - calls[calls.length - 2].t;
-ok(gap >= Math.max(1500, Math.min(3000, Math.round(400 + after.height / 400 * 1000))) - 20 && gap < Math.max(1500, Math.min(3000, Math.round(400 + after.height / 400 * 1000))) + 500, `이미지 전송 후 급지까지 ${Math.round(gap)}ms (기존 자동 대기: 이미지 높이에 비례, 최대 3000ms)`);
+ok(gap >= Math.max(1500, Math.min(5000, Math.round(400 + after.height / 400 * 1000))) - 20 && gap < Math.max(1500, Math.min(5000, Math.round(400 + after.height / 400 * 1000))) + 500, `이미지 전송 후 급지까지 ${Math.round(gap)}ms (기존 자동 대기: 이미지 높이에 비례, 최대 5000ms)`);
 ok(Math.max(...calls.slice(0, -1).map((c) => c.bytes.length)) <= 128 && calls.every((c) => c.mode === 'noresp'), '청크 128B·쓰기 방식 기본값 그대로(설정 변경 없음)');
 // 전송된 래스터 = 미리보기 비트맵
 let rows = 0, wB = 0; for (let i = 0; i < image.length;) { if (image[i] === 0x1d && image[i + 1] === 0x76 && image[i + 2] === 0x30) { wB = image[i + 4]; const h = image[i + 6] | (image[i + 7] << 8); rows += h; i += 8 + wB * h; } else i++; }

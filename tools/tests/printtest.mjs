@@ -224,7 +224,8 @@ ok(!prev.hidden && prev.text.includes('384×'), `미리보기: ${prev.text}`);
 await page.screenshot({ path: `${SHOTS}dev-panel.png` });
 await mock(() => { window.__mock.written = []; window.__mock.chunkLens = []; });
 await tap('.result__print');
-ok(await waitPage('end', 60000), '개발 모드 + 연결됨 → 실제 출력 후 완료 화면');
+// 확대된 약69KB 이미지를 20B 청크로 보내면 모의 BLE·청크 타이머를 포함해 60초를 넘길 수 있다.
+ok(await waitPage('end', 120000), '개발 모드 + 연결됨 → 실제 출력 후 완료 화면');
 ok(Math.max(...await mock(() => window.__mock.chunkLens)) === 20, '청크 20B 설정 적용');
 ok(await page.$eval('.dev-badge', (b) => b.hidden), '실제 출력 후에는 "실제 인쇄 아님" 표시 숨김');
 ok(await page.evaluate(() => JSON.parse(localStorage.getItem('byeolungwan.printer')).settings.chunkSize) === 20, '전송 설정이 기기에 저장됨');
@@ -244,3 +245,4 @@ ok(u.page === 'result' && u.err.includes('쓸 수 없습니다') && u.chip, `미
 ok(errors.length === 0, `콘솔 오류 없음 ${JSON.stringify(errors)}`);
 console.log(`\n합계 PASS ${pass} / FAIL ${fail}`);
 await browser.close();
+process.exitCode = fail ? 1 : 0;
