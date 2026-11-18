@@ -52,8 +52,6 @@ const PRECACHE = [
   './src/data/receipt/byeolungwan_28su_birthdate_reference.json',
   './src/data/receipt/byeolungwan_fortunes_2026-11-20_24.json',
   './public/fonts/hanja/ByeolungwanHanja-Regular.woff2',
-  './public/assets/receipt/qr/app.svg',
-  './public/assets/receipt/qr/website.svg',
   './public/assets/receipt/constellations/e01_gak.svg',
   './public/assets/receipt/constellations/e02_hang.svg',
   './public/assets/receipt/constellations/e03_jeo.svg',

@@ -1,4 +1,4 @@
-// 최종 기간 제한·본문 여백·QR 여백·개발 미리보기·공개 에셋 검사
+// 최종 기간 제한·본문 여백·응원 문구 아래 여백·개발 미리보기·필수 에셋 검사
 import puppeteer from 'puppeteer-core';
 import { readFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -34,16 +34,14 @@ try {
     const bm = await renderReceipt(S.state.result);
     const l = bm.layout;
     const bit = (x, y) => (bm.bits[y * bm.widthBytes + (x >> 3)] >> (7 - (x & 7))) & 1;
-    let rightWhite = true, quietWhite = true;
+    let rightWhite = true, footerWhite = true;
     for (let y = l.bodyTop; y < l.bodyBottom + 1; y++) for (let x = 323; x < 384; x++) if (bit(x, y)) rightWhite = false;
-    for (const qx of l.qrXs) for (let y = l.qrTop - l.qrQuiet; y < l.qrTop + l.qrSize + l.qrQuiet; y++) for (let x = qx - l.qrQuiet; x < qx + l.qrSize + l.qrQuiet; x++) {
-      if ((x < qx || x >= qx + l.qrSize || y < l.qrTop || y >= l.qrTop + l.qrSize) && bit(x, y)) quietWhite = false;
-    }
-    return { datesMatch, rightWhite, quietWhite, screen: document.querySelector('[data-page="result"] .fortune-card__date').textContent };
+    for (let y = Math.ceil(l.cheerBottom); y < bm.height; y++) for (let x = 0; x < 384; x++) if (bit(x, y)) footerWhite = false;
+    return { datesMatch, rightWhite, footerWhite, screen: document.querySelector('[data-page="result"] .fortune-card__date').textContent };
   });
   ok(result.datesMatch && result.screen === '2026년 11월 24일', '개발 모드 25·26일: 28개 모두 화면·발행일·운세가 24일과 일치');
   ok(result.rightWhite, '최종 비트맵 본문 오른쪽 61px에 잉크 없음');
-  ok(result.quietWhite, '110px QR 둘레 최소 16px(4모듈 이상) 흰 여백 보존');
+  ok(result.footerWhite, '응원 문구 뒤 마무리 여백에 QR·라벨·추가 잉크 없음');
   await page.click('.dev-printer__toggle');
   await page.click('[data-dev="preview"]');
   await page.waitForSelector('.dev-printer__receipt');

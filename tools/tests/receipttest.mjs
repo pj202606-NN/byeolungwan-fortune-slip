@@ -1,6 +1,5 @@
-// 새 운세지: 28개 × 날짜별 렌더링, QR 판독, 화면 연결, 인쇄 시점 날짜 재계산, 기존 전송 파이프라인
+// 운세지: 28개 × 날짜별 렌더링, 응원 문구로 종료, 화면 연결, 인쇄 시점 날짜 재계산, 기존 전송 파이프라인
 import puppeteer from 'puppeteer-core';
-import jsQR from 'jsqr';
 import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -37,21 +36,6 @@ await page.goto(`${BASE}?dev=1`, { waitUntil: 'networkidle0' });
 
 ok(await page.evaluate(async () => { await document.fonts.load('400 14px ByeolungwanHanja', '氐宿'); return document.fonts.check('400 14px ByeolungwanHanja', '角亢氐房心尾箕斗牛女虛危室壁奎婁胃昴畢觜參井鬼柳星張翼軫宿'); }), '한자 글꼴(ByeolungwanHanja) 로딩: 28수 한자·宿 모두 사용 가능');
 
-// QR 원본을 크게 그려 판독한 값(기준)
-const qrRef = await page.evaluate(async () => {
-  const out = {};
-  for (const [k, p] of [['app', 'public/assets/receipt/qr/app.svg'], ['web', 'public/assets/receipt/qr/website.svg']]) {
-    const img = new Image(); img.src = p; await img.decode();
-    const c = document.createElement('canvas'); c.width = 600; c.height = 600;
-    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 600, 600); g.drawImage(img, 0, 0, 600, 600);
-    out[k] = [...g.getImageData(0, 0, 600, 600).data];
-  }
-  return out;
-});
-const decode = (rgba, w, h) => { const r = jsQR(Uint8ClampedArray.from(rgba), w, h); return r && r.data; };
-const refApp = decode(qrRef.app, 600, 600), refWeb = decode(qrRef.web, 600, 600);
-ok(!!refApp && !!refWeb && refApp !== refWeb, `QR 원본 판독: 앱 ${refApp} / 웹 ${refWeb}`);
-
 console.log('— 28개 × 날짜별 운세지 렌더링');
 const dates = ['2026-11-20', '2026-11-21', '2026-11-22', '2026-11-23', '2026-11-24'];
 const summary = await page.evaluate(async (dates) => {
@@ -66,16 +50,17 @@ const summary = await page.evaluate(async (dates) => {
       sel.value = d; sel.dispatchEvent(new Event('change'));
       const res = await S.resultFor(await S.mansionById(id), null);
       const bm = await renderReceipt(res);
-      // 실제 그래픽 영역 검정 비율, QR 영역 비트 추출
+      // 실제 그래픽 영역 검정 비율과 마지막 문구 아래 흰 여백 확인
       const bit = (x, y) => (bm.bits[y * bm.widthBytes + (x >> 3)] >> (7 - (x & 7))) & 1;
       const gs = bm.layout.graphicSize, gx = Math.round((384 - gs) / 2), gy = bm.layout.graphicTop;
       let gBlack = 0; for (let y = gy; y < gy + gs; y++) for (let x = gx; x < gx + gs; x++) gBlack += bit(x, y);
-      const qr = (x0) => { const arr = []; const pad = 16; for (let y = bm.layout.qrTop - pad; y < bm.layout.qrTop + bm.layout.qrSize + pad; y++) for (let x = x0 - pad; x < x0 + bm.layout.qrSize + pad; x++) { const v = bit(x, y) ? 0 : 255; arr.push(v, v, v, 255); } return arr; };
+      let footerWhite = true;
+      for (let y = Math.ceil(bm.layout.cheerBottom); y < bm.height; y++) for (let x = 0; x < 384; x++) if (bit(x, y)) footerWhite = false;
       const bytes = buildRasterPrint(bm);
       rows.push({
         d, id, issue: res.receipt.issueIso, name: `${res.receipt.suName} ${res.receipt.hanja}`, alias: res.receipt.alias, text: res.receipt.fortuneText, src: res.receipt.fortuneSource,
         luck: res.receipt.luck, cheer: res.receipt.cheer, w: bm.widthBytes * 8, h: bm.height, layout: bm.layout, bodyLines: bm.layout.bodyLines, cheerLines: bm.layout.cheerLines,
-        gBlack, gTotal: gs * gs, qrApp: id === 1 || id === 24 ? qr(bm.layout.qrXs[0]) : null, qrWeb: id === 1 || id === 24 ? qr(bm.layout.qrXs[1]) : null,
+        gBlack, gTotal: gs * gs, footerWhite,
         rs: rasterSummary(bm), bytes: bytes.length, last3: [...bytes.slice(-3)],
       });
     }
@@ -86,10 +71,10 @@ ok(summary.length === 140, `렌더링 ${summary.length}건(28개 × 5일)`);
 ok(summary.every((r) => r.w === 384), '모든 운세지 폭 384 dots');
 ok(summary.every((r) => r.layout.bodyLeft === 21.5 && r.layout.bodyWidth === 300 && r.layout.bodyAlign === 'left'), '본문만 300px·좌측 정렬, 왼쪽 21.5px 유지');
 ok(summary.every((r) => r.layout.nameDividerY - r.layout.aliasBottom === 51), '이름 아래 잉크 끝~점선 51px');
-ok(summary.every((r) => r.layout.qrSize === 110), 'QR 두 개 모두 110px');
+ok(summary.every(r => r.footerWhite && r.h === Math.ceil(r.layout.cheerBottom + 80) && r.layout.textBounds.at(-1).text === r.layout.cheerLines.at(-1)), '140건 모두 마지막 응원 문구 뒤 80px 여백으로 끝남(QR·라벨 없음)');
 const hs = summary.map((r) => r.h); ok(Math.min(...hs) > 800, `세로 길이는 내용에 따라 변함: ${Math.min(...hs)}~${Math.max(...hs)} dots (${(Math.min(...hs) / 8).toFixed(0)}~${(Math.max(...hs) / 8).toFixed(0)}mm)`);
 ok(summary.every(r => r.layout.textBounds.every(b => b.left >= 0 && b.right <= 384 && b.top >= 0 && b.bottom < r.h)), '전체 글자 영역이 384px 폭과 동적 이미지 높이 안에 들어감(140건)');
-ok(summary.every(r => r.layout.bodyFontSize === 24 && r.layout.bodyPitch === 35 && r.layout.bodyDividerY - r.layout.bodyBottom === 45 && r.layout.qrTop - r.layout.cheerBottom >= 62), '본문 24px·행간 35px, 본문·응원 문구·QR 간 충돌 없음');
+ok(summary.every(r => r.layout.bodyFontSize === 24 && r.layout.bodyPitch === 35 && r.layout.bodyDividerY - r.layout.bodyBottom === 45), '본문 24px·행간 35px, 본문과 구분선 간 충돌 없음');
 ok(summary.every((r) => r.issue === r.d), '발행일 = 데이터 날짜');
 ok(summary.every((r) => r.bodyLines.join('').replace(/\s/g, '') === r.text.replace(/\s/g, '')), '운세 본문이 줄바꿈만 되고 글자 하나도 빠지지 않음(140건)');
 const maxLines = Math.max(...summary.map((r) => r.bodyLines.length)); const minLines = Math.min(...summary.map((r) => r.bodyLines.length));
@@ -97,9 +82,6 @@ ok(true, `본문 줄 수 ${minLines}~${maxLines}줄 — 줄 수만큼 아래 요
 ok(summary.every((r) => r.cheerLines.join(' ').replace(/\s+/g, ' ') === `“${r.cheer}”`), '응원 문구가 원문 그대로 “ ”와 함께 출력(28개)');
 ok(summary.every((r) => r.gBlack > 150 && r.gBlack < r.gTotal * 0.25), `별자리 그래픽이 검정으로 찍히고 회색 네모 없음(검정 비율 ${Math.min(...summary.map((r) => r.gBlack))}~${Math.max(...summary.map((r) => r.gBlack))} / ${180 * 180} dots)`);
 ok(summary.every((r) => r.rs.lastRows > 0 && r.rs.rasterBytes === 48 * r.h && r.last3.join() === '27,97,0'), '이미지 전송 데이터: 폭 48바이트 × 전체 높이, 끝은 ESC a 0(급지는 기존대로 별도 전송)');
-const qrRows = summary.filter((r) => r.qrApp);
-const qrDecoded = qrRows.map((r) => [decode(r.qrApp, r.layout.qrSize + 32, r.layout.qrSize + 32), decode(r.qrWeb, r.layout.qrSize + 32, r.layout.qrSize + 32)]);
-ok(qrDecoded.every(([a, w]) => a === refApp && w === refWeb), `최종 흑백 비트맵에서 QR 2개 판독 성공(${qrRows.length * 2}건): 원본과 같은 주소`);
 // 대표 4개(사신수별) 내용 확인
 for (const id of [3, 12, 17, 24]) {
   const r = summary.find((x) => x.id === id && x.d === '2026-11-24');

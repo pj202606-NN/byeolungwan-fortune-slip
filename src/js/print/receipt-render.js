@@ -13,10 +13,6 @@ const TEXT_WIDTH = RIGHT - LEFT;
 const BODY_WIDTH = 300;       // 본문만 축소: 왼쪽 시작점 유지, 오른쪽 여백 62.5px
 const LOGO_PATH = 'public/assets/logo.svg';
 const LOGO_VIEWBOX = '99 176 145 403';   // logo.svg의 실제 그림 영역(원본 파일은 수정하지 않고 메모리에서만 자름)
-const QR_PATHS = { app: 'public/assets/receipt/qr/app.svg', web: 'public/assets/receipt/qr/website.svg' };
-const QR_CORE_VIEWBOX = '62 62 1023 1023'; // 원본 SVG의 33모듈 패턴 영역
-const QR_SIZE = 110;                      // QR 크기는 여기서만 조절(원본 패턴·정사각형 유지)
-const QR_QUIET = Math.max(16, Math.ceil(QR_SIZE / 33 * 4));
 const GRAPHIC_SIZE = 180;
 const LOGO_HEIGHT = 80;
 const LOGO_WIDTH = Math.ceil(LOGO_HEIGHT * 145 / 403); // 원본 viewBox 비율
@@ -35,7 +31,6 @@ const F = {
   body: sans(400, 24),
   lucky: sans(600, 21),
   cheer: sans(500, 22),
-  qrLabel: sans(500, 16),
 };
 const BODY_PITCH = 35;   // 24px × 1.458
 const CHEER_PITCH = 33;
@@ -83,22 +78,6 @@ async function svgSilhouette(path, { viewBox, extraStyle = '', width, height }) 
   g.globalCompositeOperation = 'source-in';
   g.fillStyle = '#000';
   g.fillRect(0, 0, width, height);
-  svgCache.set(key, c);
-  return c;
-}
-
-/** QR: 원본 패턴 영역을 지정 크기로 렌더링한다 — 패턴 변형·재생성 없음 */
-async function qrImage(path) {
-  const key = `qr|${path}`;
-  if (svgCache.has(key)) return svgCache.get(key);
-  const img = await loadSvgImage(path, { viewBox: QR_CORE_VIEWBOX, width: QR_SIZE, height: QR_SIZE });
-  const c = document.createElement('canvas');
-  c.width = QR_SIZE;
-  c.height = QR_SIZE;
-  const g = c.getContext('2d');
-  g.fillStyle = '#fff';
-  g.fillRect(0, 0, QR_SIZE, QR_SIZE);
-  g.drawImage(img, 0, 0, QR_SIZE, QR_SIZE);
   svgCache.set(key, c);
   return c;
 }
@@ -170,10 +149,9 @@ function dashed(g, y) {
 export async function renderReceipt(result) {
   const r = result.receipt;
   await ensureFonts();
-  const [logo, graphic, qrApp, qrWeb] = await Promise.all([
+  const [logo, graphic] = await Promise.all([
     svgSilhouette(LOGO_PATH, { viewBox: LOGO_VIEWBOX, width: LOGO_WIDTH, height: LOGO_HEIGHT }),
     svgSilhouette(r.graphicPath, { viewBox: '0 0 250 250', extraStyle: 'polyline,line,path{stroke-width:3.2}', width: GRAPHIC_SIZE, height: GRAPHIC_SIZE }),
-    qrImage(QR_PATHS.app), qrImage(QR_PATHS.web),
   ]);
   const canvas = document.createElement('canvas');
   canvas.width = W;
@@ -251,15 +229,7 @@ export async function renderReceipt(result) {
   const cheerTop = luckyDividerY + 39;
   let cheerBottom = cheerTop;
   cheerLines.forEach((line, i) => { cheerBottom = text(F.cheer, line, cheerTop + i * CHEER_PITCH, W / 2, 'center'); });
-  const qrTop = Math.ceil(cheerBottom + 62);
-  const qrGap = 2 * QR_QUIET;
-  const qrLeft = Math.round((W - (QR_SIZE * 2 + qrGap)) / 2);
-  const qrXs = [qrLeft, qrLeft + QR_SIZE + qrGap];
-  draws.push(() => { g.drawImage(qrApp, qrXs[0], qrTop); g.drawImage(qrWeb, qrXs[1], qrTop); });
-  const labelTop = qrTop + QR_SIZE + QR_QUIET + 6;
-  const labelBottom = Math.max(text(F.qrLabel, '앱', labelTop, qrXs[0] + QR_SIZE / 2, 'center'),
-    text(F.qrLabel, '웹사이트', labelTop, qrXs[1] + QR_SIZE / 2, 'center'));
-  const height = Math.ceil(labelBottom + 80);
+  const height = Math.ceil(cheerBottom + 80); // 응원 문구 뒤 마무리 여백만 남긴다.
 
   // 측정이 끝난 뒤 실제 높이로 캔버스를 생성하므로 긴 본문도 하단까지 보존한다.
   canvas.height = height;
@@ -270,8 +240,7 @@ export async function renderReceipt(result) {
     bodyFontSize: 24, bodyPitch: BODY_PITCH, bodyDividerY, nameDividerY, cheerLines, cheerTop, cheerBottom,
     logoTop, logoWidth: LOGO_WIDTH, logoHeight: LOGO_HEIGHT, titleTop, issueTop, firstDividerY,
     graphicTop, graphicSize: GRAPHIC_SIZE, nameTop, aliasTop, aliasBottom, headingTop,
-    luckyTop, luckyBottom, luckyPitch: LUCKY_PITCH, luckyDividerY, qrTop, qrXs, qrSize: QR_SIZE,
-    qrQuiet: QR_QUIET, labelTop, labelBottom, textBounds, height };
+    luckyTop, luckyBottom, luckyPitch: LUCKY_PITCH, luckyDividerY, textBounds, height };
   return { ...toBitmap(g, height, RECEIPT_THRESHOLD), canvas, layout };
 }
 

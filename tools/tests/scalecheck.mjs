@@ -1,6 +1,5 @@
 // 확대된 실제 텍스트 렌더링·장문 하단 보존·28개 그래픽 외곽 및 비교 이미지
 import puppeteer from 'puppeteer-core';
-import jsQR from 'jsqr';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -37,10 +36,8 @@ try {
     };
     const print = await createPrintService(fakePrinter).printReceipt(longResult);
     const lp = bitmapPreview(long);
-    const q = (i) => {
-      const size = long.layout.qrSize, pad = long.layout.qrQuiet;
-      return { size: size + pad * 2, pixels: [...lp.getContext('2d').getImageData(long.layout.qrXs[i] - pad, long.layout.qrTop - pad, size + pad * 2, size + pad * 2).data] };
-    };
+    const footer = lp.getContext('2d').getImageData(0, Math.ceil(long.layout.cheerBottom), 384, long.height - Math.ceil(long.layout.cheerBottom)).data;
+    const footerWhite = footer.every((v, i) => i % 4 === 3 || v === 255);
     const contact = document.createElement('canvas'); contact.width = 7 * 200; contact.height = 4 * 230;
     const cg = contact.getContext('2d'); cg.fillStyle = '#fff'; cg.fillRect(0, 0, contact.width, contact.height);
     const bounds = [];
@@ -65,10 +62,10 @@ try {
     return { drawn, bodyLines: normal.layout.bodyLines, layout: normal.layout, bounds, transmissions, printStatus: print.status,
       longHeight: long.height, longCanvasHeight: long.canvas.height, longLines: long.layout.bodyLines,
       longText: longResult.receipt.fortuneText, raster: rasterSummary(long), bytes: buildRasterPrint(long).length,
-      qr: [q(0), q(1)], comparison: comparison.toDataURL(), contact: contact.toDataURL(), longPreview: lp.toDataURL() };
+      footerWhite, comparison: comparison.toDataURL(), contact: contact.toDataURL(), longPreview: lp.toDataURL() };
   }, before);
   ok(data.bodyLines.every(line => data.drawn.some(d => d.value === line && /24px/.test(d.font))), '실제 fillText 본문 글꼴 24px 적용');
-  ok(data.layout.logoHeight === 80 && data.layout.graphicSize === 180 && data.layout.qrSize === 110, '로고 80px 높이·그래픽 180px·QR 110px 개별 렌더링');
+  ok(data.layout.logoHeight === 80 && data.layout.graphicSize === 180, '로고 80px 높이·그래픽 180px 개별 렌더링');
   ok(data.bounds.every(b => b.minX > 0 && b.minY > 0 && b.maxX < 179 && b.maxY < 179), '28개 그래픽 모두 프레임 가장자리에 닿지 않아 잘림 없음');
   console.log('그래픽 잉크 크기 범위:', Math.min(...data.bounds.map(b => b.width)), '~', Math.max(...data.bounds.map(b => b.width)), '×', Math.min(...data.bounds.map(b => b.height)), '~', Math.max(...data.bounds.map(b => b.height)));
   ok(data.longHeight > 2000 && data.longCanvasHeight === data.longHeight && data.longLines.join('').replace(/\s/g, '') === data.longText.replace(/\s/g, ''), `2000px 초과 장문도 전체 생성·누락 없음(${data.longHeight}px)`);
@@ -76,8 +73,7 @@ try {
   ok(data.printStatus === 'printed' && data.transmissions.length === 2 && data.transmissions[1].feed.join(',') === '27,64,27,50,27,100,6', '장문도 이미지 전체와 기존 급지 7바이트를 별도 쓰기로 전송');
   const wait = data.transmissions[1].t - data.transmissions[0].t;
   ok(wait >= 4980 && wait < 5700, `장문 자동 대기 상한 5초 확인(${Math.round(wait)}ms)`);
-  const decoded = data.qr.map(q => jsQR(Uint8ClampedArray.from(q.pixels), q.size, q.size)?.data);
-  ok(decoded[0] === 'https://pj202606-NN.github.io/byeol-ungwan-app/' && decoded[1] === 'https://pj202606-nn.github.io/byeolungwan-main-site/', '긴 이미지 하단 QR 두 개까지 잘림 없이 판독');
+  ok(data.footerWhite, '장문도 응원 문구 뒤 흰 여백으로 끝남');
   for (const [name, url] of [['receipt-comparison.png', data.comparison], ['constellations-enlarged.png', data.contact], ['receipt-long.png', data.longPreview]]) writeFileSync(new URL(name, output), Buffer.from(url.split(',')[1], 'base64'));
 } finally { await browser.close(); }
 console.log(`합계 PASS ${pass} / FAIL ${fail}`);

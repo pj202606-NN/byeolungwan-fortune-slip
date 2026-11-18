@@ -209,7 +209,6 @@ export function createPrinterUi(stage, { printer, printService, dev, getResult, 
         r.fortuneText ? `오늘의 운세: ${r.fortuneText}` : '',
         r.luck ? `행운의 방위 ${r.luck.direction} · 오방색 ${r.luck.color} · 행성 ${r.luck.planet}` : '',
         r.cheer ? `응원 문구: “${r.cheer}”` : '',
-        'QR 확인: 아래 미리보기의 QR 두 개를 휴대폰 카메라로 비춰 각각 열리는지 확인하세요.',
       ].filter(Boolean).join('\n'),
     });
     box.replaceChildren(info, img);

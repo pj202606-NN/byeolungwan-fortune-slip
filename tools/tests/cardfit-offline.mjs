@@ -50,9 +50,9 @@ const cacheInfo = await page.evaluate(async () => {
 const sw = readFileSync('d:/대학/4학년/졸전/byeolungwan-fortune-slip/sw.js', 'utf8');
 const listed = [...new Set([...sw.matchAll(/^ {2}'(\.\/[^']*)',/gm)].map((m) => m[1]))];
 ok(cacheInfo.urls.length === listed.length, `서비스 워커 캐시 ${cacheInfo.urls.length}/${listed.length}개`);
-ok(['byeolungwan_fortunes_2026-11-20_24.json', 'byeolungwan_28su_birthdate_reference.json', 'ByeolungwanHanja-Regular.woff2', 'app.svg', 'website.svg', 's03_ryu.svg', 'cheers.js', 'mansions.js', 'receipt-date.js'].every((n) => cacheInfo.urls.some((u) => u.endsWith(n))), '새 데이터·한자 글꼴·QR·그래픽·모듈 캐시됨');
+ok(['byeolungwan_fortunes_2026-11-20_24.json', 'byeolungwan_28su_birthdate_reference.json', 'ByeolungwanHanja-Regular.woff2', 's03_ryu.svg', 'cheers.js', 'mansions.js', 'receipt-date.js'].every((n) => cacheInfo.urls.some((u) => u.endsWith(n))), '새 데이터·한자 글꼴·그래픽·모듈 캐시됨');
 ok(cacheInfo.urls.filter((u) => u.includes('/constellations/')).length === 28, '별자리 그래픽 28개 캐시');
-ok(!cacheInfo.urls.some((u) => u.includes('28su_database_final') || u.includes('descriptions') || u.includes('_v6') || u.endsWith('.md')), '쓰지 않는 오래된 JS·소개 JSON·MD는 캐시하지 않음');
+ok(!cacheInfo.urls.some((u) => u.includes('28su_database_final') || u.includes('descriptions') || u.includes('_v6') || u.endsWith('.md') || u.includes('/qr/')), '쓰지 않는 오래된 JS·소개 JSON·MD는 캐시하지 않음');
 await page.setOfflineMode(true);
 await page.reload({ waitUntil: 'networkidle0' });
 const off = await page.evaluate(async () => {
