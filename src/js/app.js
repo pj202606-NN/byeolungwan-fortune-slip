@@ -14,6 +14,9 @@ import { createPrintService } from './print/print-service.js';
 import { createPrinterUi } from './ui/printer-ui.js';
 
 const PAGES = ['start', 'birth', 'result', 'end'];
+const END_IDLE_MS = 10_000;
+let endIdleTimer = null;
+let endReturnAnimation = null;
 
 const params = new URLSearchParams(location.search);
 const DEV = params.get('dev') === '1';
@@ -77,12 +80,49 @@ function go(page) {
     el.hidden = el.dataset.page !== page;
   });
   state.page = page;
+  restartEndIdleTimer();
   if (page === 'start') {
     resetSession();
     printer.tryReconnect(); // 끊겨 있으면 터치 없이 가능한 재연결만 시도(실패 시 상단 버튼으로 연결)
     pwa.notifySafePoint(); // 대기 중인 새 버전이 있으면 이때만 적용
   }
   if (page === 'result' || page === 'end') fitFortuneCards();
+}
+
+// 완료 화면에서 마지막 조작 이후 10초가 지나면 다음 관람객을 위해 초기화한다.
+function restartEndIdleTimer() {
+  clearTimeout(endIdleTimer);
+  endIdleTimer = null;
+  endReturnAnimation?.cancel();
+  endReturnAnimation = null;
+  if (state.page !== 'end') return;
+  endIdleTimer = setTimeout(async () => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduceMotion) {
+      endReturnAnimation = stage.querySelector('[data-page="end"]').animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        { duration: 180, easing: 'ease-in' },
+      );
+      try {
+        await endReturnAnimation.finished;
+      } catch {
+        return; // 전환 중 다시 조작하거나 다른 화면으로 이동하면 복귀를 취소한다.
+      }
+      endReturnAnimation = null;
+    }
+    help.close();
+    go('start');
+    if (!reduceMotion) {
+      stage.querySelector('[data-page="start"]').animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: 220, easing: 'ease-out' },
+      );
+    }
+  }, END_IDLE_MS);
+}
+
+for (const type of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'click', 'keydown', 'input', 'wheel', 'scroll']) {
+  window.addEventListener(type, restartEndIdleTimer, { capture: true, passive: true });
 }
 
 // 화면 카드(R-03·R-04)의 운세 문장: 카드 크기는 그대로 두고, 넘칠 때만 글자를 줄여 카드 안에 맞춘다.
